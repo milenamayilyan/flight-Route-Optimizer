@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Aeropath — Flight Route Optimizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ======================== NAV ======================== -->
+<nav>
+  <a class="nav-logo" href="#">
+    <div class="nav-logo-icon"><i class="fa-solid fa-route"></i></div>
+    <span class="nav-logo-text">Aero<span>path</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#optimizer-section">Optimizer</a></li>
+    <li><a href="#algorithms-section">Algorithms</a></li>
+    <li><a href="#about-section">About</a></li>
+  </ul>
+  <span class="nav-badge">DS Project</span>
+</nav>
+
+<!-- ======================== HERO ======================== -->
+<div class="hero">
+  <div class="hero-grid-lines"></div>
+  <div class="hero-inner">
+    <span class="hero-eyebrow">
+      <i class="fa-solid fa-circle"></i>
+      Graph Algorithm Engine
+    </span>
+    <h1 class="hero-title">
+      Navigate Every<br>
+      <em>Route,</em>
+      <span class="gold-line">Optimally.</span>
+    </h1>
+    <p class="hero-sub">
+      A comprehensive flight network optimizer powered by Dijkstra, A*, Bellman-Ford,
+      Floyd-Warshall, Yen's K-Paths, and more — running on a 250+ route global dataset.
+    </p>
+    <a class="hero-cta" href="#optimizer-section">
+      <i class="fa-solid fa-play btn-icon"></i>
+      Launch Optimizer
+    </a>
+    <div class="hero-stats">
+      <div>
+        <span class="hero-stat-num">250+</span>
+        <span class="hero-stat-label">Flight Routes</span>
+      </div>
+      <div>
+        <span class="hero-stat-num">80+</span>
+        <span class="hero-stat-label">Airports</span>
+      </div>
+      <div>
+        <span class="hero-stat-num">9</span>
+        <span class="hero-stat-label">Algorithms</span>
+      </div>
+      <div>
+        <span class="hero-stat-num">6</span>
+        <span class="hero-stat-label">Continents</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== WORLD MAP ======================== -->
+<div class="map-section">
+  <div class="map-container">
+    <div class="map-header">
+      <div class="map-title">
+        <div class="map-dot"></div>
+        Live Route Network
+      </div>
+      <div class="map-legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#c8a84b"></div>
+          Airport Node
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#4fa8a8;width:16px;height:2px;border-radius:1px"></div>
+          Route
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#c4613a"></div>
+          Highlighted Path
+        </div>
+      </div>
+    </div>
+    <canvas id="worldMap"></canvas>
+  </div>
+</div>
+
+<!-- ======================== ALGORITHMS OVERVIEW ======================== -->
+<section id="algorithms-section">
+  <div class="section-label">Available Algorithms</div>
+  <h2 class="section-title">Nine algorithms.<br>Every routing need covered.</h2>
+
+  <div class="algo-grid">
+    <div class="algo-card" data-algo="dijkstra_cost" onclick="selectAlgo(this,'dijkstra_cost')">
+      <div class="algo-icon-wrap"><i class="fa-solid fa-coins"></i></div>
+      <div class="algo-name">Cheapest Route</div>
+      <div class="algo-desc">Classic Dijkstra on cost weights. Finds the minimum-cost path using a priority queue with a predecessor map for efficient reconstruction.</div>
+      <div class="algo-tags">
+        <span class="tag tag-complexity">O((V+E) log V)</span>
+        <span class="tag tag-type">Greedy</span>
+        <span class="tag tag-type">Single-source</span>
+      </div>
+    </div>
+
+    <div class="algo-card" data-algo="dijkstra_duration" onclick="selectAlgo(this,'dijkstra_duration')">
+      <div class="algo-icon-wrap"><i class="fa-solid fa-clock"></i></div>
+      <div class="algo-name">Fastest Route</div>
+      <div class="algo-desc">Dijkstra on duration weights. Minimises total flight time rather than ticket cost, using the same efficient heap-based approach.</div>
+      <div class="algo-tags">
+        <span class="tag tag-complexity">O((V+E) log V)</span>
+        <span class="tag tag-type">Greedy</span>
+        <span class="tag tag-type">Single-source</span>
+      </div>
+    </div>
+
+    <div class="algo-card" data-algo="bellman_ford" onclick="selectAlgo(this,'bellman_ford')">
+      <div class="algo-icon-wrap"><i class="fa-solid fa-tag"></i></div>
+      <div class="algo-name">Discount Routes</div>
+      <div class="algo-desc">Bellman-Ford handles negative edge weights (airline discounts / promotions) and detects negative-weight cycles in the network.</div>
+      <div class="algo-tags">
+        <span class="tag tag-complexity">O(V · E)</span>
+        <span class="tag tag-type">Dynamic</span>
+        <span class="tag tag-type">Negative edges</span>
+      </div>
+    </div>
+
+    <div class="algo-card" data-algo="astar" onclick="selectAlgo(this,'astar')">
+      <div class="algo-icon-wrap"><i class="fa-solid fa-location-dot"></i></div>
+      <div class="algo-name">A* Geo-Route</div>
+      <div class="algo-desc">A* with a Haversine distance heuristic. Uses real airport coordinates to guide the search, dramatically reducing explored nodes vs plain Dijkstra.</div>
+      <div class="algo-tags">
+        <span class="tag tag-complexity">O(E log V)</span>
+        <span class="tag tag-type">Heuristic</span>
+        <span class="tag tag-type">Informed search</span>
+      </div>
+    </div>
+
+    <div class="algo-card" data-algo="bidirectional" onclick="selectAlgo(this,'bidirectional')">
+      <div class="algo-icon-wrap"><i class="fa-solid fa-left-right"></i></div>
+      <div class="algo-name">Bidirectional</div>
+      <div class="algo-desc">Simultaneously expands from source and destination. Meets in the middle, cutting search space roughly in half on large, dense networks.</div>
+      <div class="algo-tags">
+        <span class="tag tag-complexity">O(b^(d/2))</span>
+        <span class="tag tag-type">Bi-directional</span>
+        <span class="tag tag-type">Optimised</span>
+      </div>
+    </div>
+
+    <div class="algo-card" data-algo="floyd_warshall" onclick="selectAlgo(this,'floyd_warshall')">
+      <div class="algo-icon-wrap"><i class="fa-solid fa-table-cells"></i></div>
+      <div class="algo-name">All-Pairs Paths</div>
+      <div class="algo-desc">Floyd-Warshall precomputes every airport-to-airport shortest path in one pass. Ideal for repeated queries without re-running single-source algorithms.</div>
+      <div class="algo-tags">
+        <span class="tag tag-complexity">O(V³)</span>
+        <span class="tag tag-type">Dynamic</span>
+        <span class="tag tag-type">All-pairs</span>
+      </div>
+    </div>
+
+    <div class="algo-card" data-algo="yen" onclick="selectAlgo(this,'yen')">
+      <div class="algo-icon-wrap"><i class="fa-solid fa-list-ol"></i></div>
+      <div class="algo-name">Top K Routes</div>
+      <div class="algo-desc">Yen's K-Shortest Paths algorithm returns the K best route alternatives. Gives passengers real booking options instead of a single optimal path.</div>
+      <div class="algo-tags">
+        <span class="tag tag-complexity">O(K · V · (V+E) log V)</span>
+        <span class="tag tag-type">K-shortest</span>
+        <span class="tag tag-type">Multi-path</span>
+      </div>
+    </div>
+
+    <div class="algo-card" data-algo="bfs" onclick="selectAlgo(this,'bfs')">
+      <div class="algo-icon-wrap"><i class="fa-solid fa-network-wired"></i></div>
+      <div class="algo-name">Reachability (BFS)</div>
+      <div class="algo-desc">Breadth-First Search finds all airports reachable within K connections. Useful for frequent flyer coverage analysis and connectivity studies.</div>
+      <div class="algo-tags">
+        <span class="tag tag-complexity">O(V + E)</span>
+        <span class="tag tag-type">BFS</span>
+        <span class="tag tag-type">Traversal</span>
+      </div>
+    </div>
+
+    <div class="algo-card" data-algo="budget" onclick="selectAlgo(this,'budget')">
+      <div class="algo-icon-wrap"><i class="fa-solid fa-wallet"></i></div>
+      <div class="algo-name">Budget Mode</div>
+      <div class="algo-desc">Modified Dijkstra that prunes the search tree at a cost ceiling. Returns every reachable destination within a given total budget.</div>
+      <div class="algo-tags">
+        <span class="tag tag-complexity">O((V+E) log V)</span>
+        <span class="tag tag-type">Constrained</span>
+        <span class="tag tag-type">Single-source</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== OPTIMIZER ======================== -->
+<section id="optimizer-section">
+  <div class="section-label">Interactive Tool</div>
+  <h2 class="section-title">Run the optimizer.</h2>
+
+  <div class="optimizer-wrapper">
+    <div class="optimizer-sidebar">
+      <div class="sidebar-header">Select Algorithm</div>
+      <button class="sidebar-btn active" data-algo="dijkstra_cost" onclick="switchAlgo(this,'dijkstra_cost')">
+        <i class="fa-solid fa-coins"></i> Cheapest Route
+      </button>
+      <button class="sidebar-btn" data-algo="dijkstra_duration" onclick="switchAlgo(this,'dijkstra_duration')">
+        <i class="fa-solid fa-clock"></i> Fastest Route
+      </button>
+      <button class="sidebar-btn" data-algo="bellman_ford" onclick="switchAlgo(this,'bellman_ford')">
+        <i class="fa-solid fa-tag"></i> Discount Routes
+      </button>
+      <button class="sidebar-btn" data-algo="astar" onclick="switchAlgo(this,'astar')">
+        <i class="fa-solid fa-location-dot"></i> A* Geo-Route
+      </button>
+      <button class="sidebar-btn" data-algo="bidirectional" onclick="switchAlgo(this,'bidirectional')">
+        <i class="fa-solid fa-left-right"></i> Bidirectional
+      </button>
+      <button class="sidebar-btn" data-algo="floyd_warshall" onclick="switchAlgo(this,'floyd_warshall')">
+        <i class="fa-solid fa-table-cells"></i> All-Pairs
+      </button>
+      <button class="sidebar-btn" data-algo="yen" onclick="switchAlgo(this,'yen')">
+        <i class="fa-solid fa-list-ol"></i> Top K Routes
+      </button>
+      <button class="sidebar-btn" data-algo="bfs" onclick="switchAlgo(this,'bfs')">
+        <i class="fa-solid fa-network-wired"></i> Reachability
+      </button>
+      <button class="sidebar-btn" data-algo="budget" onclick="switchAlgo(this,'budget')">
+        <i class="fa-solid fa-wallet"></i> Budget Mode
+      </button>
+      <button class="sidebar-btn" data-algo="articulation" onclick="switchAlgo(this,'articulation')">
+        <i class="fa-solid fa-circle-exclamation"></i> Critical Airports
+      </button>
+      <button class="sidebar-btn" data-algo="scc" onclick="switchAlgo(this,'scc')">
+        <i class="fa-solid fa-diagram-project"></i> Connected Components
+      </button>
+      <button class="sidebar-btn" data-algo="mst" onclick="switchAlgo(this,'mst')">
+        <i class="fa-solid fa-tree"></i> Min Spanning Tree
+      </button>
+    </div>
+
+    <div class="optimizer-main">
+      <div class="form-header">
+        <div>
+          <div class="form-title" id="form-title">Cheapest Route</div>
+          <div class="form-subtitle" id="form-subtitle">Dijkstra — minimum cost path</div>
+        </div>
+        <div class="complexity-badge" id="form-complexity">O((V+E) log V)</div>
+      </div>
+      <div id="dynamic-form"></div>
+      <button class="run-btn" id="run-btn" onclick="runAlgorithm()">
+        <i class="fa-solid fa-bolt btn-icon"></i>
+        <i class="fa-solid fa-spinner spin"></i>
+        Run Algorithm
+      </button>
+      <div class="results-panel" id="results-panel">
+        <div class="results-empty">
+          <i class="fa-solid fa-route"></i>
+          <p>Configure the parameters above and click Run Algorithm to see results.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== ABOUT ======================== -->
+<section id="about-section">
+  <div class="section-label">Technical Overview</div>
+  <h2 class="section-title">Built on proven foundations.</h2>
+  <div class="about-grid">
+    <div class="about-card">
+      <div class="about-card-icon"><i class="fa-solid fa-database"></i></div>
+      <div class="about-card-title">Adjacency List Graph</div>
+      <div class="about-card-text">
+        The flight network is stored as a weighted directed adjacency list.
+        Each edge carries both a cost and a duration weight, supporting
+        multi-criteria optimisation without graph duplication.
+      </div>
+    </div>
+    <div class="about-card">
+      <div class="about-card-icon"><i class="fa-solid fa-map-pin"></i></div>
+      <div class="about-card-title">Geographic Coordinates</div>
+      <div class="about-card-text">
+        Every airport in the CSV carries latitude and longitude data.
+        This powers both the A* Haversine heuristic and the live
+        network visualisation on the map canvas above.
+      </div>
+    </div>
+    <div class="about-card">
+      <div class="about-card-icon"><i class="fa-solid fa-shield-halved"></i></div>
+      <div class="about-card-title">Input Validation</div>
+      <div class="about-card-text">
+        The Python backend validates all CSV rows for missing columns,
+        non-numeric values, and negative weights. Bellman-Ford
+        additionally detects negative-weight cycles before returning results.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== FOOTER ======================== -->
+<footer>
+  <div class="footer-left">
+    <strong>Aeropath</strong><br>
+    Flight Route Optimizer — Data Structures Project
+  </div>
+  <div class="footer-right">
+    <span class="footer-tag">Python Backend</span>
+    <span class="footer-tag">Graph Algorithms</span>
+    <span class="footer-tag">250+ Routes</span>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
