@@ -41,7 +41,7 @@
     </h1>
     <p class="hero-sub">
       A comprehensive flight network optimizer powered by Dijkstra, A*, Bellman-Ford,
-      Floyd-Warshall, Yen's K-Paths, and more — running on a 250+ route global dataset.
+      Floyd-Warshall, Yen's K-Paths, and more — running on a 300+ route global dataset.
     </p>
     <a class="hero-cta" href="#optimizer-section">
       <i class="fa-solid fa-play btn-icon"></i>
@@ -49,15 +49,15 @@
     </a>
     <div class="hero-stats">
       <div>
-        <span class="hero-stat-num">250+</span>
+        <span class="hero-stat-num">300+</span>
         <span class="hero-stat-label">Flight Routes</span>
       </div>
       <div>
-        <span class="hero-stat-num">80+</span>
+        <span class="hero-stat-num">90+</span>
         <span class="hero-stat-label">Airports</span>
       </div>
       <div>
-        <span class="hero-stat-num">9</span>
+        <span class="hero-stat-num">12</span>
         <span class="hero-stat-label">Algorithms</span>
       </div>
       <div>
@@ -91,20 +91,22 @@
         </div>
       </div>
     </div>
+    <!-- Tooltip inside .map-container so absolute positioning works -->
+    <div id="map-tooltip"></div>
     <canvas id="worldMap"></canvas>
   </div>
 </div>
 
-<!-- ======================== ALGORITHMS OVERVIEW ======================== -->
+<!-- ======================== ALGORITHMS OVERVIEW — 12 cards ======================== -->
 <section id="algorithms-section">
   <div class="section-label">Available Algorithms</div>
-  <h2 class="section-title">Nine algorithms.<br>Every routing need covered.</h2>
+  <h2 class="section-title">Twelve algorithms.<br>Every routing need covered.</h2>
 
   <div class="algo-grid">
     <div class="algo-card" data-algo="dijkstra_cost" onclick="selectAlgo(this,'dijkstra_cost')">
       <div class="algo-icon-wrap"><i class="fa-solid fa-coins"></i></div>
       <div class="algo-name">Cheapest Route</div>
-      <div class="algo-desc">Classic Dijkstra on cost weights. Finds the minimum-cost path using a priority queue with a predecessor map for efficient reconstruction.</div>
+      <div class="algo-desc">Dijkstra on cost weights with automatic discounts applied. Finds the minimum-cost path using a priority queue and predecessor map.</div>
       <div class="algo-tags">
         <span class="tag tag-complexity">O((V+E) log V)</span>
         <span class="tag tag-type">Greedy</span>
@@ -115,7 +117,7 @@
     <div class="algo-card" data-algo="dijkstra_duration" onclick="selectAlgo(this,'dijkstra_duration')">
       <div class="algo-icon-wrap"><i class="fa-solid fa-clock"></i></div>
       <div class="algo-name">Fastest Route</div>
-      <div class="algo-desc">Dijkstra on duration weights. Minimises total flight time rather than ticket cost, using the same efficient heap-based approach.</div>
+      <div class="algo-desc">Dijkstra on duration weights. Minimises total flight time. Try JFK → SYD — the 19 h direct is fastest; the cheaper route via SIN takes 25 h.</div>
       <div class="algo-tags">
         <span class="tag tag-complexity">O((V+E) log V)</span>
         <span class="tag tag-type">Greedy</span>
@@ -126,7 +128,7 @@
     <div class="algo-card" data-algo="bellman_ford" onclick="selectAlgo(this,'bellman_ford')">
       <div class="algo-icon-wrap"><i class="fa-solid fa-tag"></i></div>
       <div class="algo-name">Discount Routes</div>
-      <div class="algo-desc">Bellman-Ford handles negative edge weights (airline discounts / promotions) and detects negative-weight cycles in the network.</div>
+      <div class="algo-desc">Bellman-Ford handles negative edge weights. Routes with over 20% discount get an extra negative bonus, enabling paths Dijkstra cannot find.</div>
       <div class="algo-tags">
         <span class="tag tag-complexity">O(V · E)</span>
         <span class="tag tag-type">Dynamic</span>
@@ -137,7 +139,7 @@
     <div class="algo-card" data-algo="astar" onclick="selectAlgo(this,'astar')">
       <div class="algo-icon-wrap"><i class="fa-solid fa-location-dot"></i></div>
       <div class="algo-name">A* Geo-Route</div>
-      <div class="algo-desc">A* with a Haversine distance heuristic. Uses real airport coordinates to guide the search, dramatically reducing explored nodes vs plain Dijkstra.</div>
+      <div class="algo-desc">A* with Haversine heuristic. Try JFK → PER — A* routes via DXB (geographically east); Cheapest routes via SIN. Different paths, same optimality guarantee.</div>
       <div class="algo-tags">
         <span class="tag tag-complexity">O(E log V)</span>
         <span class="tag tag-type">Heuristic</span>
@@ -148,7 +150,7 @@
     <div class="algo-card" data-algo="bidirectional" onclick="selectAlgo(this,'bidirectional')">
       <div class="algo-icon-wrap"><i class="fa-solid fa-left-right"></i></div>
       <div class="algo-name">Bidirectional</div>
-      <div class="algo-desc">Simultaneously expands from source and destination. Meets in the middle, cutting search space roughly in half on large, dense networks.</div>
+      <div class="algo-desc">Simultaneously expands from source and destination, meeting in the middle — cutting search space roughly in half on dense networks.</div>
       <div class="algo-tags">
         <span class="tag tag-complexity">O(b^(d/2))</span>
         <span class="tag tag-type">Bi-directional</span>
@@ -170,7 +172,7 @@
     <div class="algo-card" data-algo="yen" onclick="selectAlgo(this,'yen')">
       <div class="algo-icon-wrap"><i class="fa-solid fa-list-ol"></i></div>
       <div class="algo-name">Top K Routes</div>
-      <div class="algo-desc">Yen's K-Shortest Paths algorithm returns the K best route alternatives. Gives passengers real booking options instead of a single optimal path.</div>
+      <div class="algo-desc">Yen's K-Shortest Paths returns the K best route alternatives ranked by cost or time. Gives passengers real booking options.</div>
       <div class="algo-tags">
         <span class="tag tag-complexity">O(K · V · (V+E) log V)</span>
         <span class="tag tag-type">K-shortest</span>
@@ -181,7 +183,7 @@
     <div class="algo-card" data-algo="bfs" onclick="selectAlgo(this,'bfs')">
       <div class="algo-icon-wrap"><i class="fa-solid fa-network-wired"></i></div>
       <div class="algo-name">Reachability (BFS)</div>
-      <div class="algo-desc">Breadth-First Search finds all airports reachable within K connections. Useful for frequent flyer coverage analysis and connectivity studies.</div>
+      <div class="algo-desc">Breadth-First Search finds all airports reachable within K connections. Useful for frequent flyer coverage and connectivity analysis.</div>
       <div class="algo-tags">
         <span class="tag tag-complexity">O(V + E)</span>
         <span class="tag tag-type">BFS</span>
@@ -192,11 +194,44 @@
     <div class="algo-card" data-algo="budget" onclick="selectAlgo(this,'budget')">
       <div class="algo-icon-wrap"><i class="fa-solid fa-wallet"></i></div>
       <div class="algo-name">Budget Mode</div>
-      <div class="algo-desc">Modified Dijkstra that prunes the search tree at a cost ceiling. Returns every reachable destination within a given total budget.</div>
+      <div class="algo-desc">Modified Dijkstra that prunes the search at a cost ceiling. Returns every reachable destination within your budget in any currency.</div>
       <div class="algo-tags">
         <span class="tag tag-complexity">O((V+E) log V)</span>
         <span class="tag tag-type">Constrained</span>
         <span class="tag tag-type">Single-source</span>
+      </div>
+    </div>
+
+    <div class="algo-card" data-algo="articulation" onclick="selectAlgo(this,'articulation')">
+      <div class="algo-icon-wrap"><i class="fa-solid fa-circle-exclamation"></i></div>
+      <div class="algo-name">Critical Airports</div>
+      <div class="algo-desc">Tarjan's articulation point algorithm. Finds airports whose removal disconnects the network — single points of failure like PTY (Panama City).</div>
+      <div class="algo-tags">
+        <span class="tag tag-complexity">O(V + E)</span>
+        <span class="tag tag-type">Tarjan</span>
+        <span class="tag tag-type">Graph structure</span>
+      </div>
+    </div>
+
+    <div class="algo-card" data-algo="scc" onclick="selectAlgo(this,'scc')">
+      <div class="algo-icon-wrap"><i class="fa-solid fa-diagram-project"></i></div>
+      <div class="algo-name">Connected Components</div>
+      <div class="algo-desc">Tarjan's SCC algorithm. With one-way routes in this dataset (Caucasus, Central Asia, Caribbean) you will see multiple distinct strongly connected components.</div>
+      <div class="algo-tags">
+        <span class="tag tag-complexity">O(V + E)</span>
+        <span class="tag tag-type">Tarjan SCC</span>
+        <span class="tag tag-type">Directed</span>
+      </div>
+    </div>
+
+    <div class="algo-card" data-algo="mst" onclick="selectAlgo(this,'mst')">
+      <div class="algo-icon-wrap"><i class="fa-solid fa-tree"></i></div>
+      <div class="algo-name">Min Spanning Tree</div>
+      <div class="algo-desc">Kruskal's MST with union-by-rank. Isolated sub-graphs (South Cone, Central Asia, Pacific) each form separate trees in the spanning forest.</div>
+      <div class="algo-tags">
+        <span class="tag tag-complexity">O(E log E)</span>
+        <span class="tag tag-type">Kruskal</span>
+        <span class="tag tag-type">Spanning forest</span>
       </div>
     </div>
   </div>
@@ -208,8 +243,27 @@
   <h2 class="section-title">Run the optimizer.</h2>
 
   <div class="optimizer-wrapper">
+    <!-- Sidebar -->
     <div class="optimizer-sidebar">
+      <!-- Currency switcher inside sidebar -->
+      <div class="currency-bar">
+        <span class="currency-bar-label"><i class="fa-solid fa-coins" style="margin-right:4px"></i>Currency</span>
+        <button class="currency-btn active" data-c="USD" onclick="setCurrency('USD')">USD</button>
+        <button class="currency-btn" data-c="EUR" onclick="setCurrency('EUR')">EUR</button>
+        <button class="currency-btn" data-c="GBP" onclick="setCurrency('GBP')">GBP</button>
+        <button class="currency-btn" data-c="RUB" onclick="setCurrency('RUB')">RUB</button>
+        <button class="currency-btn" data-c="AMD" onclick="setCurrency('AMD')">AMD</button>
+        <button class="currency-btn" data-c="AED" onclick="setCurrency('AED')">AED</button>
+        <button class="currency-btn" data-c="JPY" onclick="setCurrency('JPY')">JPY</button>
+        <button class="currency-btn" data-c="CNY" onclick="setCurrency('CNY')">CNY</button>
+        <button class="currency-btn" data-c="INR" onclick="setCurrency('INR')">INR</button>
+        <button class="currency-btn" data-c="BRL" onclick="setCurrency('BRL')">BRL</button>
+        <button class="currency-btn" data-c="TRY" onclick="setCurrency('TRY')">TRY</button>
+      </div>
+
+      <div style="height:16px"></div>
       <div class="sidebar-header">Select Algorithm</div>
+
       <button class="sidebar-btn active" data-algo="dijkstra_cost" onclick="switchAlgo(this,'dijkstra_cost')">
         <i class="fa-solid fa-coins"></i> Cheapest Route
       </button>
@@ -248,6 +302,7 @@
       </button>
     </div>
 
+    <!-- Main panel -->
     <div class="optimizer-main">
       <div class="form-header">
         <div>
@@ -290,9 +345,9 @@
       <div class="about-card-icon"><i class="fa-solid fa-map-pin"></i></div>
       <div class="about-card-title">Geographic Coordinates</div>
       <div class="about-card-text">
-        Every airport in the CSV carries latitude and longitude data.
-        This powers both the A* Haversine heuristic and the live
-        network visualisation on the map canvas above.
+        Every airport carries latitude and longitude data.
+        This powers the A* Haversine heuristic, the live map canvas,
+        and the automatic path zoom feature.
       </div>
     </div>
     <div class="about-card">
@@ -316,7 +371,7 @@
   <div class="footer-right">
     <span class="footer-tag">Python Backend</span>
     <span class="footer-tag">Graph Algorithms</span>
-    <span class="footer-tag">250+ Routes</span>
+    <span class="footer-tag">300+ Routes</span>
   </div>
 </footer>
 
