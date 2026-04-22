@@ -576,18 +576,14 @@ function buildForm(algo) {
       <select id="f-mode"><option value="cost">Cost (${sym})</option><option value="duration">Duration (hrs)</option></select>
     </div></div>`;
 
-  const discNote = `<div class="discount-notice"><i class="fa-solid fa-tags"></i>
-    Discounts applied automatically based on route length and season.
-    Short-haul routes get <strong>12%</strong> off, long-haul in off-peak months <strong>8%</strong>, medium-haul on weekends <strong>5%</strong>. All costs shown are post-discount.</div>`;
-
   const forms = {
-    dijkstra_cost:    twoNode + discNote + dl,
+    dijkstra_cost:    twoNode + dl,
     dijkstra_duration:twoNode + `<div class="discount-notice"><i class="fa-solid fa-lightbulb"></i>Try <strong>JFK → SYD</strong>: Fastest picks the 19 h direct flight. Cheapest routes via SIN, saving money but adding hours.</div>` + dl,
-    astar:            twoNode + `<div class="discount-notice"><i class="fa-solid fa-location-crosshairs"></i>Try <strong>JFK → PER</strong>: A* routes via DXB (geographically east). Cheapest routes via SIN (slightly cheaper). Different paths due to the geographic heuristic.</div>` + discNote + dl,
+    astar:            twoNode + `<div class="discount-notice"><i class="fa-solid fa-location-crosshairs"></i>Try <strong>JFK → PER</strong>: A* routes via DXB (geographically east). Cheapest routes via SIN (slightly cheaper). Different paths due to the geographic heuristic.</div>` + dl,
     bidirectional:    twoNode + `<div class="form-grid single"><div class="field"><label>Optimise for</label><select id="f-mode"><option value="cost">Cost (${sym})</option><option value="duration">Duration (hrs)</option></select></div></div>` + dl,
-    yen: twoNode + `<div class="form-grid"><div class="field"><label>Number of paths (K)</label><input id="f-k" type="number" value="3" min="1" max="8"/></div><div class="field"><label>Optimise for</label><select id="f-mode"><option value="cost">Cost</option><option value="duration">Duration</option></select></div></div>` + discNote + dl,
+    yen: twoNode + `<div class="form-grid"><div class="field"><label>Number of paths (K)</label><input id="f-k" type="number" value="3" min="1" max="8"/></div><div class="field"><label>Optimise for</label><select id="f-mode"><option value="cost">Cost</option><option value="duration">Duration</option></select></div></div>` + dl,
     bfs:         oneNode + `<div class="form-grid single"><div class="field"><label>Max connections (K)</label><input id="f-k" type="number" value="2" min="1" max="10"/></div></div>` + dl,
-    budget:      oneNode + `<div class="form-grid single"><div class="field"><label>Budget (${sym})</label><input id="f-budget" type="number" value="500" min="0"/></div></div>` + discNote + dl,
+    budget:      oneNode + `<div class="form-grid single"><div class="field"><label>Budget (${sym})</label><input id="f-budget" type="number" value="500" min="0"/></div></div>` + dl,
     articulation:`<p style="font-size:13px;color:var(--muted);margin-bottom:16px">Finds airports whose removal disconnects the network. PTY (Panama City) is the sole gateway between the Caribbean and South America.</p>`,
     scc:         `<p style="font-size:13px;color:var(--muted);margin-bottom:16px">With one-way routes (LHR→EVN, Central Asia inbound only) this dataset has multiple SCCs. You will see distinct components for the Caucasus cluster, Central Asia, and the Caribbean.</p>`,
     mst:         `<p style="font-size:13px;color:var(--muted);margin-bottom:16px">Computes the minimum-cost spanning forest. Isolated sub-graphs (South Cone LPB/ASU, Central Asia, Pacific islands) each appear as separate tree components.</p>`,
@@ -608,6 +604,7 @@ function buildForm(algo) {
 function switchAlgo(btn, algo) {
   document.querySelectorAll('.sidebar-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active'); currentAlgo = algo;
+  _lastResult = null;
   const cfg = ALGO_CONFIG[algo];
   document.getElementById('form-title').textContent     = cfg.title;
   document.getElementById('form-subtitle').textContent  = cfg.sub;
@@ -624,18 +621,59 @@ function selectAlgo(card, algo) {
 }
 
 /* ===================================================
+   LAST RESULT — stored so currency change can re-render
+   =================================================== */
+let _lastResult = null; // { type, data } — saved after every successful run
+
+/* ===================================================
    CURRENCY SWITCHER
    =================================================== */
 function setCurrency(code) {
   currentCurrency = code;
   document.querySelectorAll('.currency-btn').forEach(b=>b.classList.toggle('active', b.dataset.c===code));
-  // Only rebuild form to update labels/placeholders — do NOT re-run the algorithm
   buildForm(currentAlgo);
-  // If there are existing results showing costs, clear them so stale values don't confuse
-  const panel = document.getElementById('results-panel');
-  if (panel && !panel.querySelector('.results-empty')) {
-    panel.innerHTML = `<div class="results-empty"><i class="fa-solid fa-coins"></i><p>Currency changed to ${code}. Click Run Algorithm to recalculate.</p></div>`;
+  // Re-render existing result in new currency without re-running the algorithm
+  if (_lastResult) _rerenderResult(_lastResult);
+}
+
+function _rerenderResult(r) {
+  if (r.type === 'path') {
+    renderPath(r.path, r.val, r.mode, r.doHighlight);
+  } else if (r.type === 'budget') {
+    const sym = CURRENCIES[currentCurrency].symbol;
+    const items = r.entries.map(([n,c])=>`<div class="result-list-item"><div class="airport-code">${n}</div><div class="airport-cost">${toCurrency(c)}</div></div>`).join('');
+    document.getElementById('results-panel').innerHTML = `
+      <div style="margin-bottom:10px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Within Budget — ${r.entries.length} destinations</div>
+      <div class="result-list">${items}</div>`;
+  } else if (r.type === 'yen') {
+    const mode = r.mode;
+    const items = r.results.map((res,i)=>`
+      <div class="k-path-item" style="animation-delay:${i*.05}s">
+        <div class="k-path-rank">${i+1}</div>
+        <div class="k-path-route">${res.path.map(n=>airportLabel(n)).join(' → ')}</div>
+        <div class="k-path-cost">${mode==='cost'?toCurrency(res.cost):`${res.cost.toFixed(1)} hrs`}</div>
+      </div>`).join('');
+    document.getElementById('results-panel').innerHTML = `
+      <div style="margin-bottom:10px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Top ${r.results.length} Routes</div>
+      <div class="k-paths-list">${items}</div>`;
+  } else if (r.type === 'mst') {
+    const items = r.mst.map(e=>`
+      <div class="mst-edge">
+        <span>${airportLabel(e.src)} <i class="fa-solid fa-arrow-right" style="font-size:9px;color:var(--muted);margin:0 5px"></i> ${airportLabel(e.dest)}</span>
+        <span class="mst-edge-cost">${toCurrency(e.cost)}</span>
+      </div>`).join('');
+    document.getElementById('results-panel').innerHTML = `
+      <div class="result-card" style="margin-bottom:14px">
+        <div class="result-header">
+          <div class="result-label">MST Total Cost</div>
+          <div class="result-value-main">${toCurrency(r.total)}</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">${r.mst.length} edges spanning the network</div>
+      </div>
+      <div style="margin-bottom:7px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">All Edges</div>
+      <div class="mst-list">${items}</div>`;
   }
+  // list-type results (bfs, articulation, scc) don't show costs so no re-render needed
 }
 
 /* ===================================================
@@ -664,12 +702,13 @@ function discountBreakdown(path) {
 
 function renderPath(path, val, mode, doHighlight=false) {
   if (!path) { showError('No route found between these airports.'); return; }
+  // Save for currency re-render
+  _lastResult = { type:'path', path, val, mode, doHighlight };
   const nodes = path.map((n,i) => {
     const arrow = i<path.length-1 ? '<span class="route-arrow"><i class="fa-solid fa-angle-right"></i></span>' : '';
     return `<div class="route-node"><div class="route-code">${n}</div></div>${arrow}`;
   }).join('');
   const valDisplay = mode==='cost' ? toCurrency(val) : `${val.toFixed(1)} hrs`;
-  const disc = mode==='cost' ? discountBreakdown(path) : '';
   const fullNames = `<div class="route-names">${path.map(n=>airportLabel(n)).join(' → ')}</div>`;
   document.getElementById('results-panel').innerHTML = `
     <div class="result-card">
@@ -680,7 +719,6 @@ function renderPath(path, val, mode, doHighlight=false) {
       <div style="margin-bottom:6px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Route — ${path.length} airports</div>
       <div class="route-path">${nodes}</div>
       ${fullNames}
-      ${disc}
     </div>`;
   if (doHighlight) {
     zoomToPath(path);
@@ -727,6 +765,7 @@ function _run() {
           <div class="k-path-route">${r.path.map(n=>airportLabel(n)).join(' → ')}</div>
           <div class="k-path-cost">${mode==='cost'?toCurrency(r.cost):`${r.cost.toFixed(1)} hrs`}</div>
         </div>`).join('');
+      _lastResult = { type:'yen', results, mode };
       document.getElementById('results-panel').innerHTML = `
         <div style="margin-bottom:10px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Top ${results.length} Routes</div>
         <div class="k-paths-list">${items}</div>`;
@@ -748,6 +787,7 @@ function _run() {
       const entries = Object.entries(result).filter(([n])=>n!==startCode).sort((a,b)=>a[1]-b[1]);
       if(!entries.length){showError('No destinations reachable within this budget.');return;}
       const items=entries.map(([n,c])=>`<div class="result-list-item"><div class="airport-code">${n}</div><div class="airport-cost">${toCurrency(c)}</div></div>`).join('');
+      _lastResult = { type:'budget', entries };
       document.getElementById('results-panel').innerHTML = `
         <div style="margin-bottom:10px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Within Budget — ${entries.length} destinations</div>
         <div class="result-list">${items}</div>`;
@@ -775,8 +815,10 @@ function _run() {
         <div class="scc-list">${groups}</div>`;
       _highlightedNodes = []; drawMap();
     } else if (algo==='mst') {
-      const mst=kruskalMST(); const total=mst.reduce((a,e)=>a+e.cost,0);
+      const mst=kruskalMST();
       // Show ALL edges (no slice limit)
+      const total=mst.reduce((a,e)=>a+e.cost,0);
+      _lastResult = { type:'mst', mst, total };
       const items=mst.map(e=>`
         <div class="mst-edge">
           <span>${airportLabel(e.src)} <i class="fa-solid fa-arrow-right" style="font-size:9px;color:var(--muted);margin:0 5px"></i> ${airportLabel(e.dest)}</span>
@@ -838,9 +880,26 @@ function zoomToPath(nodes) {
 }
 
 function resetMap() {
+  // Reset map viewport and highlights
   _mapZoom = {minLon:-180,maxLon:180,minLat:-85,maxLat:85};
   _highlightedNodes = [];
+  _hoveredAirport = null;
+  _hoveredEdge = null;
   drawMap();
+  // Clear stored result
+  _lastResult = null;
+  // Reset to Cheapest Route as default algorithm
+  const defaultAlgo = 'dijkstra_cost';
+  currentAlgo = defaultAlgo;
+  const cfg = ALGO_CONFIG[defaultAlgo];
+  document.getElementById('form-title').textContent      = cfg.title;
+  document.getElementById('form-subtitle').textContent   = cfg.sub;
+  document.getElementById('form-complexity').textContent = cfg.complexity;
+  // Rebuild form (clears inputs)
+  buildForm(defaultAlgo);
+  // Reset sidebar active state
+  document.querySelectorAll('.sidebar-btn').forEach(b=>b.classList.toggle('active', b.dataset.algo===defaultAlgo));
+  document.querySelectorAll('.algo-card').forEach(c=>c.classList.remove('active'));
   // Clear results panel
   document.getElementById('results-panel').innerHTML = `<div class="results-empty"><i class="fa-solid fa-route"></i><p>Configure the parameters above and click Run Algorithm to see results.</p></div>`;
 }
