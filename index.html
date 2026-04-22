@@ -57,7 +57,7 @@
         <span class="hero-stat-label">Airports</span>
       </div>
       <div>
-        <span class="hero-stat-num">12</span>
+        <span class="hero-stat-num">10</span>
         <span class="hero-stat-label">Algorithms</span>
       </div>
       <div>
@@ -94,13 +94,20 @@
     <!-- Tooltip inside .map-container so absolute positioning works -->
     <div id="map-tooltip"></div>
     <canvas id="worldMap"></canvas>
+    <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:14px">
+      <button onclick="resetMap()" style="display:inline-flex;align-items:center;gap:7px;padding:8px 18px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:rgba(255,255,255,0.65);font-family:'Syne',sans-serif;font-size:12px;font-weight:600;letter-spacing:0.06em;cursor:pointer;transition:all 0.2s">
+        <i class="fa-solid fa-rotate-left" style="font-size:11px"></i>
+        Reset Map &amp; Results
+      </button>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,0.25);letter-spacing:0.1em">Scroll to zoom · Hover vertices and edges for details</span>
+    </div>
   </div>
 </div>
 
-<!-- ======================== ALGORITHMS OVERVIEW — 12 cards ======================== -->
+<!-- ======================== ALGORITHMS OVERVIEW — 10 cards ======================== -->
 <section id="algorithms-section">
   <div class="section-label">Available Algorithms</div>
-  <h2 class="section-title">Twelve algorithms.<br>Every routing need covered.</h2>
+  <h2 class="section-title">Ten algorithms.<br>Every routing need covered.</h2>
 
   <div class="algo-grid">
     <div class="algo-card" data-algo="dijkstra_cost" onclick="selectAlgo(this,'dijkstra_cost')">
@@ -125,21 +132,10 @@
       </div>
     </div>
 
-    <div class="algo-card" data-algo="bellman_ford" onclick="selectAlgo(this,'bellman_ford')">
-      <div class="algo-icon-wrap"><i class="fa-solid fa-tag"></i></div>
-      <div class="algo-name">Discount Routes</div>
-      <div class="algo-desc">Bellman-Ford handles negative edge weights. Routes with over 20% discount get an extra negative bonus, enabling paths Dijkstra cannot find.</div>
-      <div class="algo-tags">
-        <span class="tag tag-complexity">O(V · E)</span>
-        <span class="tag tag-type">Dynamic</span>
-        <span class="tag tag-type">Negative edges</span>
-      </div>
-    </div>
-
     <div class="algo-card" data-algo="astar" onclick="selectAlgo(this,'astar')">
       <div class="algo-icon-wrap"><i class="fa-solid fa-location-dot"></i></div>
       <div class="algo-name">A* Geo-Route</div>
-      <div class="algo-desc">A* with Haversine heuristic. Try JFK → PER — A* routes via DXB (geographically east); Cheapest routes via SIN. Different paths, same optimality guarantee.</div>
+      <div class="algo-desc">A* with Haversine heuristic. Try JFK → PER — A* routes via DXB (geographically east); Cheapest routes via SIN. Different paths, same optimality.</div>
       <div class="algo-tags">
         <span class="tag tag-complexity">O(E log V)</span>
         <span class="tag tag-type">Heuristic</span>
@@ -158,21 +154,10 @@
       </div>
     </div>
 
-    <div class="algo-card" data-algo="floyd_warshall" onclick="selectAlgo(this,'floyd_warshall')">
-      <div class="algo-icon-wrap"><i class="fa-solid fa-table-cells"></i></div>
-      <div class="algo-name">All-Pairs Paths</div>
-      <div class="algo-desc">Floyd-Warshall precomputes every airport-to-airport shortest path in one pass. Ideal for repeated queries without re-running single-source algorithms.</div>
-      <div class="algo-tags">
-        <span class="tag tag-complexity">O(V³)</span>
-        <span class="tag tag-type">Dynamic</span>
-        <span class="tag tag-type">All-pairs</span>
-      </div>
-    </div>
-
     <div class="algo-card" data-algo="yen" onclick="selectAlgo(this,'yen')">
       <div class="algo-icon-wrap"><i class="fa-solid fa-list-ol"></i></div>
       <div class="algo-name">Top K Routes</div>
-      <div class="algo-desc">Yen's K-Shortest Paths returns the K best route alternatives ranked by cost or time. Gives passengers real booking options.</div>
+      <div class="algo-desc">Yen's K-Shortest Paths returns the K best route alternatives ranked by cost or time. Gives passengers real booking options beyond a single answer.</div>
       <div class="algo-tags">
         <span class="tag tag-complexity">O(K · V · (V+E) log V)</span>
         <span class="tag tag-type">K-shortest</span>
@@ -194,7 +179,7 @@
     <div class="algo-card" data-algo="budget" onclick="selectAlgo(this,'budget')">
       <div class="algo-icon-wrap"><i class="fa-solid fa-wallet"></i></div>
       <div class="algo-name">Budget Mode</div>
-      <div class="algo-desc">Modified Dijkstra that prunes the search at a cost ceiling. Returns every reachable destination within your budget in any currency.</div>
+      <div class="algo-desc">Modified Dijkstra pruning at a cost ceiling. Returns every reachable destination within your budget in any selected currency.</div>
       <div class="algo-tags">
         <span class="tag tag-complexity">O((V+E) log V)</span>
         <span class="tag tag-type">Constrained</span>
@@ -270,17 +255,11 @@
       <button class="sidebar-btn" data-algo="dijkstra_duration" onclick="switchAlgo(this,'dijkstra_duration')">
         <i class="fa-solid fa-clock"></i> Fastest Route
       </button>
-      <button class="sidebar-btn" data-algo="bellman_ford" onclick="switchAlgo(this,'bellman_ford')">
-        <i class="fa-solid fa-tag"></i> Discount Routes
-      </button>
       <button class="sidebar-btn" data-algo="astar" onclick="switchAlgo(this,'astar')">
         <i class="fa-solid fa-location-dot"></i> A* Geo-Route
       </button>
       <button class="sidebar-btn" data-algo="bidirectional" onclick="switchAlgo(this,'bidirectional')">
         <i class="fa-solid fa-left-right"></i> Bidirectional
-      </button>
-      <button class="sidebar-btn" data-algo="floyd_warshall" onclick="switchAlgo(this,'floyd_warshall')">
-        <i class="fa-solid fa-table-cells"></i> All-Pairs
       </button>
       <button class="sidebar-btn" data-algo="yen" onclick="switchAlgo(this,'yen')">
         <i class="fa-solid fa-list-ol"></i> Top K Routes

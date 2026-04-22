@@ -1196,19 +1196,26 @@ canvas#worldMap {
 #map-tooltip {
   position: absolute;
   pointer-events: none;
-  background: rgba(10,10,15,0.88);
+  background: rgba(10,10,15,0.92);
   color: var(--gold);
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
   font-weight: 500;
-  padding: 5px 10px;
-  border-radius: 4px;
-  border: 1px solid rgba(200,168,75,0.25);
-  letter-spacing: 0.08em;
+  padding: 7px 12px;
+  border-radius: 5px;
+  border: 1px solid rgba(200,168,75,0.3);
+  letter-spacing: 0.06em;
   white-space: nowrap;
+  line-height: 1.5;
   opacity: 0;
-  transition: opacity 0.12s ease;
+  transition: opacity 0.1s ease;
   z-index: 10;
+  backdrop-filter: blur(8px);
+}
+
+#map-tooltip strong {
+  color: #fff;
+  font-weight: 600;
 }
 
 .map-container { position: relative; }
@@ -1234,4 +1241,13 @@ canvas#worldMap {
 .optimizer-sidebar {
   overflow-y: auto;
   max-height: 800px;
+}
+
+/* ============================================
+   MAP RESET BAR BUTTON HOVER
+   ============================================ */
+.map-reset-bar button:hover {
+  background: rgba(255,255,255,0.13) !important;
+  color: rgba(255,255,255,0.9) !important;
+  border-color: rgba(255,255,255,0.22) !important;
 }

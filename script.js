@@ -529,10 +529,8 @@ function kruskalMST() {
 const ALGO_CONFIG = {
   dijkstra_cost:    {title:'Cheapest Route',      sub:'Dijkstra — minimum cost (with discounts)',      complexity:'O((V+E) log V)'},
   dijkstra_duration:{title:'Fastest Route',       sub:'Dijkstra — minimum total flight time',          complexity:'O((V+E) log V)'},
-  bellman_ford:     {title:'Discount Routes',     sub:'Bellman-Ford — exploits negative discount edges',complexity:'O(V · E)'},
   astar:            {title:'A* Geo-Route',        sub:'A* with Haversine heuristic — geography-guided',complexity:'O(E log V)'},
   bidirectional:    {title:'Bidirectional',       sub:'Meets-in-the-middle Dijkstra',                  complexity:'O(b^d/2)'},
-  floyd_warshall:   {title:'All-Pairs Paths',     sub:'Every source to every destination',             complexity:'O(V³)'},
   yen:              {title:'Top K Routes',        sub:"Yen's K-Shortest Paths — ranked alternatives",  complexity:'O(K·V·(V+E) log V)'},
   bfs:              {title:'Reachability (BFS)',  sub:'Airports reachable within K connections',       complexity:'O(V + E)'},
   budget:           {title:'Budget Mode',         sub:'All destinations within a cost ceiling',        complexity:'O((V+E) log V)'},
@@ -585,10 +583,8 @@ function buildForm(algo) {
   const forms = {
     dijkstra_cost:    twoNode + discNote + dl,
     dijkstra_duration:twoNode + `<div class="discount-notice"><i class="fa-solid fa-lightbulb"></i>Try <strong>JFK → SYD</strong>: Fastest picks the 19 h direct flight. Cheapest routes via SIN, saving money but adding hours.</div>` + dl,
-    bellman_ford:     twoNode + modeField + `<div class="discount-notice"><i class="fa-solid fa-bolt"></i>Routes with over 20% discount receive a small negative-weight bonus. Bellman-Ford can exploit these edges. Try <strong>JFK → MAD</strong> (20% promo on that leg).</div>` + dl,
     astar:            twoNode + `<div class="discount-notice"><i class="fa-solid fa-location-crosshairs"></i>Try <strong>JFK → PER</strong>: A* routes via DXB (geographically east). Cheapest routes via SIN (slightly cheaper). Different paths due to the geographic heuristic.</div>` + discNote + dl,
-    bidirectional:    twoNode + modeField + dl,
-    floyd_warshall:   twoNode + modeField + dl,
+    bidirectional:    twoNode + `<div class="form-grid single"><div class="field"><label>Optimise for</label><select id="f-mode"><option value="cost">Cost (${sym})</option><option value="duration">Duration (hrs)</option></select></div></div>` + dl,
     yen: twoNode + `<div class="form-grid"><div class="field"><label>Number of paths (K)</label><input id="f-k" type="number" value="3" min="1" max="8"/></div><div class="field"><label>Optimise for</label><select id="f-mode"><option value="cost">Cost</option><option value="duration">Duration</option></select></div></div>` + discNote + dl,
     bfs:         oneNode + `<div class="form-grid single"><div class="field"><label>Max connections (K)</label><input id="f-k" type="number" value="2" min="1" max="10"/></div></div>` + dl,
     budget:      oneNode + `<div class="form-grid single"><div class="field"><label>Budget (${sym})</label><input id="f-budget" type="number" value="500" min="0"/></div></div>` + discNote + dl,
@@ -633,7 +629,13 @@ function selectAlgo(card, algo) {
 function setCurrency(code) {
   currentCurrency = code;
   document.querySelectorAll('.currency-btn').forEach(b=>b.classList.toggle('active', b.dataset.c===code));
+  // Only rebuild form to update labels/placeholders — do NOT re-run the algorithm
   buildForm(currentAlgo);
+  // If there are existing results showing costs, clear them so stale values don't confuse
+  const panel = document.getElementById('results-panel');
+  if (panel && !panel.querySelector('.results-empty')) {
+    panel.innerHTML = `<div class="results-empty"><i class="fa-solid fa-coins"></i><p>Currency changed to ${code}. Click Run Algorithm to recalculate.</p></div>`;
+  }
 }
 
 /* ===================================================
@@ -660,7 +662,7 @@ function discountBreakdown(path) {
   return lines.length ? `<div class="discount-breakdown">${lines.join('')}</div>` : '';
 }
 
-function renderPath(path, val, mode) {
+function renderPath(path, val, mode, doHighlight=false) {
   if (!path) { showError('No route found between these airports.'); return; }
   const nodes = path.map((n,i) => {
     const arrow = i<path.length-1 ? '<span class="route-arrow"><i class="fa-solid fa-angle-right"></i></span>' : '';
@@ -680,7 +682,11 @@ function renderPath(path, val, mode) {
       ${fullNames}
       ${disc}
     </div>`;
-  zoomToPath(path);
+  if (doHighlight) {
+    zoomToPath(path);
+  } else {
+    _highlightedNodes = []; drawMap();
+  }
 }
 
 /* ===================================================
@@ -694,24 +700,23 @@ function runAlgorithm() {
 
 function _run() {
   const algo = currentAlgo;
+  // Algorithms that should highlight path on map
+  const HIGHLIGHT_ALGOS = new Set(['dijkstra_cost','dijkstra_duration','astar','bidirectional','budget','articulation']);
+
   try {
     if (algo==='dijkstra_cost') {
       const {path,val} = dijkstra(getVal('f-start'),getVal('f-end'),'cost');
-      renderPath(path,val,'cost');
+      renderPath(path,val,'cost',true);
     } else if (algo==='dijkstra_duration') {
       const {path,val} = dijkstra(getVal('f-start'),getVal('f-end'),'duration');
-      renderPath(path,val,'duration');
-    } else if (algo==='bellman_ford') {
-      const mode=getMode();
-      const {path,val} = bellmanFord(getVal('f-start'),getVal('f-end'),mode);
-      renderPath(path,val,mode);
+      renderPath(path,val,'duration',true);
     } else if (algo==='astar') {
       const {path,val} = astar(getVal('f-start'),getVal('f-end'));
-      renderPath(path,val,'cost');
-    } else if (algo==='bidirectional'||algo==='floyd_warshall') {
+      renderPath(path,val,'cost',true);
+    } else if (algo==='bidirectional') {
       const mode=getMode();
       const {path,val} = dijkstra(getVal('f-start'),getVal('f-end'),mode);
-      renderPath(path,val,mode);
+      renderPath(path,val,mode,true);
     } else if (algo==='yen') {
       const mode=getMode();
       const results=yenKShortest(getVal('f-start'),getVal('f-end'),getNum('f-k',3),mode);
@@ -725,7 +730,8 @@ function _run() {
       document.getElementById('results-panel').innerHTML = `
         <div style="margin-bottom:10px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Top ${results.length} Routes</div>
         <div class="k-paths-list">${items}</div>`;
-      zoomToPath(results[0].path);
+      // No map highlight for Yen — doesn't fit the spec
+      _highlightedNodes = []; drawMap();
     } else if (algo==='bfs') {
       const result=bfsKConnections(getVal('f-start'),getNum('f-k',2));
       if(!result.length){showError('No reachable airports found.');return;}
@@ -733,24 +739,29 @@ function _run() {
       document.getElementById('results-panel').innerHTML = `
         <div style="margin-bottom:10px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Reachable — ${result.length} airports</div>
         <div class="result-list">${items}</div>`;
-      zoomToPath(result.filter(n=>coords[n]));
+      // No map highlight for BFS
+      _highlightedNodes = []; drawMap();
     } else if (algo==='budget') {
       const budUSD = getFloat('f-budget',500) / CURRENCIES[currentCurrency].rate;
-      const result = budgetRoutes(getVal('f-start'),budUSD);
-      const entries = Object.entries(result).sort((a,b)=>a[1]-b[1]);
+      const startCode = getVal('f-start');
+      const result = budgetRoutes(startCode, budUSD);
+      const entries = Object.entries(result).filter(([n])=>n!==startCode).sort((a,b)=>a[1]-b[1]);
       if(!entries.length){showError('No destinations reachable within this budget.');return;}
       const items=entries.map(([n,c])=>`<div class="result-list-item"><div class="airport-code">${n}</div><div class="airport-cost">${toCurrency(c)}</div></div>`).join('');
       document.getElementById('results-panel').innerHTML = `
         <div style="margin-bottom:10px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Within Budget — ${entries.length} destinations</div>
         <div class="result-list">${items}</div>`;
+      // Highlight reachable nodes on map
       zoomToPath(entries.map(([n])=>n).filter(n=>coords[n]));
     } else if (algo==='articulation') {
       const aps=findArticulationPoints();
-      if(!aps.length){document.getElementById('results-panel').innerHTML=`<div class="result-card"><div class="result-label">No critical airports found</div><p style="color:var(--muted);font-size:13px;margin-top:8px">Network has no single points of failure.</p></div>`;return;}
+      if(!aps.length){document.getElementById('results-panel').innerHTML=`<div class="result-card"><div class="result-label">No critical airports found</div><p style="color:var(--muted);font-size:13px;margin-top:8px">Network has no single points of failure.</p></div>`;
+        _highlightedNodes=[]; drawMap(); return;}
       const items=aps.map(n=>`<div class="result-list-item"><div class="airport-code">${n}</div><div class="airport-cost">${AIRPORT_NAMES[n]?.split(',')[0]||'Critical'}</div></div>`).join('');
       document.getElementById('results-panel').innerHTML=`
         <div style="margin-bottom:10px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Critical Airports — ${aps.length}</div>
         <div class="result-list">${items}</div>`;
+      // Highlight critical airports on map
       zoomToPath(aps.filter(n=>coords[n]));
     } else if (algo==='scc') {
       const sccs=tarjanSCC().sort((a,b)=>b.length-a.length);
@@ -762,9 +773,11 @@ function _run() {
       document.getElementById('results-panel').innerHTML=`
         <div style="margin-bottom:10px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">${sccs.length} components total</div>
         <div class="scc-list">${groups}</div>`;
+      _highlightedNodes = []; drawMap();
     } else if (algo==='mst') {
       const mst=kruskalMST(); const total=mst.reduce((a,e)=>a+e.cost,0);
-      const items=mst.slice(0,40).map(e=>`
+      // Show ALL edges (no slice limit)
+      const items=mst.map(e=>`
         <div class="mst-edge">
           <span>${airportLabel(e.src)} <i class="fa-solid fa-arrow-right" style="font-size:9px;color:var(--muted);margin:0 5px"></i> ${airportLabel(e.dest)}</span>
           <span class="mst-edge-cost">${toCurrency(e.cost)}</span>
@@ -777,17 +790,20 @@ function _run() {
           </div>
           <div style="font-size:12px;color:var(--muted)">${mst.length} edges spanning the network</div>
         </div>
-        <div style="margin-bottom:7px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Edges${mst.length>40?' (first 40)':''}</div>
+        <div style="margin-bottom:7px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">All Edges</div>
         <div class="mst-list">${items}</div>`;
+      _highlightedNodes = []; drawMap();
     }
   } catch(e) { showError('Error: ' + e.message); }
 }
 
 /* ===================================================
-   WORLD MAP — zoom to path + hover tooltip
+   WORLD MAP — scroll-zoom, hover tooltips, reset
    =================================================== */
 let _highlightedNodes = [];
 let _mapZoom = {minLon:-180,maxLon:180,minLat:-85,maxLat:85};
+let _hoveredAirport  = null;  // code of hovered airport
+let _hoveredEdge     = null;  // {src,dst,cost,dur} of hovered edge
 
 function geoXY(lat, lon, W, H) {
   const {minLon,maxLon,minLat,maxLat} = _mapZoom;
@@ -795,6 +811,14 @@ function geoXY(lat, lon, W, H) {
     x: (lon - minLon) / (maxLon - minLon) * W,
     y: (maxLat - lat) / (maxLat - minLat) * H,
   };
+}
+
+// Inverse: canvas pixel → {lat,lon}
+function canvasToGeo(px, py, W, H) {
+  const {minLon,maxLon,minLat,maxLat} = _mapZoom;
+  const lon = minLon + (px / W) * (maxLon - minLon);
+  const lat = maxLat - (py / H) * (maxLat - minLat);
+  return {lat, lon};
 }
 
 function zoomToPath(nodes) {
@@ -813,8 +837,25 @@ function zoomToPath(nodes) {
   drawMap();
 }
 
+function resetMap() {
+  _mapZoom = {minLon:-180,maxLon:180,minLat:-85,maxLat:85};
+  _highlightedNodes = [];
+  drawMap();
+  // Clear results panel
+  document.getElementById('results-panel').innerHTML = `<div class="results-empty"><i class="fa-solid fa-route"></i><p>Configure the parameters above and click Run Algorithm to see results.</p></div>`;
+}
+
 function gridStep(span) {
   if(span>120)return 30; if(span>60)return 15; if(span>30)return 10; if(span>15)return 5; return 2;
+}
+
+// Point-to-segment distance helper for edge hover
+function ptSegDist(px,py,ax,ay,bx,by){
+  const dx=bx-ax,dy=by-ay;
+  const lenSq=dx*dx+dy*dy;
+  if(lenSq===0)return Math.hypot(px-ax,py-ay);
+  const t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/lenSq));
+  return Math.hypot(px-(ax+t*dx),py-(ay+t*dy));
 }
 
 function drawMap() {
@@ -834,15 +875,19 @@ function drawMap() {
   for(let g=Math.ceil(minLon/gs)*gs;g<=maxLon;g+=gs){const{x}=geoXY(0,g,W,H);ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
   for(let l=Math.ceil(minLat/gs)*gs;l<=maxLat;l+=gs){const{y}=geoXY(l,0,W,H);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
 
-  // All routes (dim)
-  ctx.strokeStyle='rgba(79,168,168,0.1)'; ctx.lineWidth=0.7;
-  FLIGHTS_RAW.forEach(([,,,, slat,slon,dlat,dlon]) => {
+  // All routes — highlight hovered edge
+  FLIGHTS_RAW.forEach(([src,dst,baseCost,dur, slat,slon,dlat,dlon]) => {
     if(slat===undefined)return;
     const a=geoXY(slat,slon,W,H), b=geoXY(dlat,dlon,W,H);
+    const isHovEdge = _hoveredEdge && _hoveredEdge.src===src && _hoveredEdge.dst===dst;
+    ctx.strokeStyle = isHovEdge ? 'rgba(200,168,75,0.95)' : 'rgba(79,168,168,0.1)';
+    ctx.lineWidth   = isHovEdge ? 2.5 : 0.7;
+    if(isHovEdge){ctx.shadowColor='rgba(200,168,75,0.5)';ctx.shadowBlur=8;}
     ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+    if(isHovEdge)ctx.shadowBlur=0;
   });
 
-  // Highlighted edges
+  // Highlighted path edges
   if (_highlightedNodes.length>1) {
     ctx.strokeStyle='rgba(196,97,58,0.9)'; ctx.lineWidth=2.5; ctx.shadowColor='rgba(196,97,58,0.5)'; ctx.shadowBlur=10;
     for(let i=0;i<_highlightedNodes.length-1;i++){
@@ -854,12 +899,20 @@ function drawMap() {
     ctx.shadowBlur=0;
   }
 
-  // All airport dots
-  Object.entries(coords).forEach(([,{lat,lon}]) => {
+  // All airport dots — larger + gold glow when hovered
+  Object.entries(coords).forEach(([code,{lat,lon}]) => {
     const{x,y}=geoXY(lat,lon,W,H);
     if(x<-8||x>W+8||y<-8||y>H+8)return;
-    ctx.beginPath(); ctx.arc(x,y,2.5,0,Math.PI*2);
-    ctx.fillStyle='rgba(200,168,75,0.55)'; ctx.fill();
+    const isHov = code === _hoveredAirport;
+    const r = isHov ? 6 : 2.5;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    if(isHov){
+      ctx.fillStyle='rgba(200,168,75,1)';
+      ctx.shadowColor='rgba(200,168,75,0.8)'; ctx.shadowBlur=14;
+    } else {
+      ctx.fillStyle='rgba(200,168,75,0.55)';
+    }
+    ctx.fill(); ctx.shadowBlur=0;
   });
 
   // Highlighted path nodes + labels
@@ -880,34 +933,117 @@ function drawMap() {
   }
 }
 
-/* Map hover tooltip — shows IATA code only */
+/* ─── Map scroll-zoom ──────────────────────────────── */
+function setupMapZoom() {
+  const canvas = document.getElementById('worldMap');
+  if (!canvas) return;
+
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const W  = canvas.clientWidth, H = canvas.clientHeight;
+
+    // Zoom factor
+    const factor = e.deltaY < 0 ? 0.75 : 1.35;
+    const {minLon,maxLon,minLat,maxLat} = _mapZoom;
+    const lonSpan = maxLon - minLon;
+    const latSpan = maxLat - minLat;
+
+    // Keep the point under cursor fixed
+    const fxLon = minLon + (mx / W) * lonSpan;
+    const fxLat = maxLat - (my / H) * latSpan;
+    const newLonSpan = Math.min(360, Math.max(5, lonSpan * factor));
+    const newLatSpan = Math.min(170, Math.max(4, latSpan * factor));
+
+    _mapZoom = {
+      minLon: Math.max(-180, fxLon - (mx / W) * newLonSpan),
+      maxLon: Math.min( 180, fxLon + (1 - mx / W) * newLonSpan),
+      minLat: Math.max( -85, fxLat - (1 - my / H) * newLatSpan),
+      maxLat: Math.min(  85, fxLat + (my / H) * newLatSpan),
+    };
+    drawMap();
+  }, { passive: false });
+}
+
+/* ─── Map hover tooltip — airport + edge ──────────── */
 function setupMapTooltip() {
-  const canvas=document.getElementById('worldMap');
-  const tooltip=document.getElementById('map-tooltip');
-  if(!canvas||!tooltip)return;
+  const canvas  = document.getElementById('worldMap');
+  const tooltip = document.getElementById('map-tooltip');
+  if (!canvas || !tooltip) return;
 
   canvas.addEventListener('mousemove', e => {
-    const rect=canvas.getBoundingClientRect();
-    const mx=e.clientX-rect.left, my=e.clientY-rect.top;
-    const W=canvas.clientWidth, H=canvas.clientHeight;
-    let found=null, best=14;
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const W = canvas.clientWidth, H = canvas.clientHeight;
+
+    // ── 1. Check airports first (priority over edges)
+    let foundAirport = null, bestAP = 12;
     Object.entries(coords).forEach(([code,{lat,lon}]) => {
-      const{x,y}=geoXY(lat,lon,W,H);
-      const d=Math.hypot(mx-x,my-y);
-      if(d<best){best=d;found=code;}
+      const{x,y} = geoXY(lat,lon,W,H);
+      const d = Math.hypot(mx-x, my-y);
+      if (d < bestAP) { bestAP=d; foundAirport=code; }
     });
-    if(found){
-      tooltip.textContent = found; // code only on map, per spec
-      tooltip.style.left=(mx+14)+'px';
-      tooltip.style.top =(my-8)+'px';
-      tooltip.style.opacity='1';
-      canvas.style.cursor='crosshair';
-    } else {
-      tooltip.style.opacity='0';
-      canvas.style.cursor='default';
+
+    if (foundAirport) {
+      const prev = _hoveredAirport;
+      _hoveredAirport = foundAirport;
+      _hoveredEdge    = null;
+      if (prev !== foundAirport) drawMap();
+
+      const name = AIRPORT_NAMES[foundAirport] || '';
+      tooltip.innerHTML = `<strong>${foundAirport}</strong>${name ? `<br><span style="opacity:.75;font-size:10px">${name}</span>` : ''}`;
+      tooltip.style.left = (mx + 14) + 'px';
+      tooltip.style.top  = (my - 8)  + 'px';
+      tooltip.style.opacity = '1';
+      canvas.style.cursor = 'crosshair';
+      return;
     }
+
+    // ── 2. Check edges (within 6px)
+    let foundEdge = null, bestEdge = 6;
+    for (const [src,dst,baseCost,dur,slat,slon,dlat,dlon] of FLIGHTS_RAW) {
+      if (slat === undefined) continue;
+      const a = geoXY(slat,slon,W,H), b = geoXY(dlat,dlon,W,H);
+      const d = ptSegDist(mx,my,a.x,a.y,b.x,b.y);
+      if (d < bestEdge) { bestEdge=d; foundEdge={src,dst,baseCost,dur}; }
+    }
+
+    if (foundEdge) {
+      const prev = _hoveredEdge;
+      _hoveredEdge    = foundEdge;
+      _hoveredAirport = null;
+      if (!prev || prev.src!==foundEdge.src || prev.dst!==foundEdge.dst) drawMap();
+
+      const {disc} = applyDiscount(foundEdge.baseCost, foundEdge.dur, 0);
+      tooltip.innerHTML = `<strong>${foundEdge.src} → ${foundEdge.dst}</strong><br>
+        <span style="opacity:.75;font-size:10px">${toCurrency(disc)} &nbsp;·&nbsp; ${foundEdge.dur.toFixed(1)} hrs</span>`;
+      tooltip.style.left = (mx + 14) + 'px';
+      tooltip.style.top  = (my - 8)  + 'px';
+      tooltip.style.opacity = '1';
+      canvas.style.cursor = 'default';
+      return;
+    }
+
+    // ── 3. Nothing found
+    if (_hoveredAirport || _hoveredEdge) {
+      _hoveredAirport = null;
+      _hoveredEdge    = null;
+      drawMap();
+    }
+    tooltip.style.opacity = '0';
+    canvas.style.cursor = 'default';
   });
-  canvas.addEventListener('mouseleave', () => { tooltip.style.opacity='0'; canvas.style.cursor='default'; });
+
+  canvas.addEventListener('mouseleave', () => {
+    tooltip.style.opacity = '0';
+    canvas.style.cursor = 'default';
+    _hoveredAirport = null;
+    _hoveredEdge    = null;
+    drawMap();
+  });
 }
 
 window.addEventListener('resize', drawMap);
@@ -918,6 +1054,7 @@ window.addEventListener('resize', drawMap);
 document.addEventListener('DOMContentLoaded', () => {
   buildForm('dijkstra_cost');
   drawMap();
+  setupMapZoom();
   setupMapTooltip();
   document.querySelectorAll('.currency-btn').forEach(b=>b.classList.toggle('active', b.dataset.c==='USD'));
 });
