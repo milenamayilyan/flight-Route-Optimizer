@@ -541,35 +541,145 @@ const ALGO_CONFIG = {
 let currentAlgo = 'dijkstra_cost';
 
 /* ===================================================
+   CUSTOM AIRPORT AUTOCOMPLETE
+   =================================================== */
+function makeAirportField(id, placeholder) {
+  const hint = `<span id="hint-${id}" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--teal);min-height:14px;display:block;margin-top:3px"></span>`;
+  return `
+    <div class="field" id="field-wrap-${id}">
+      <label>${id === 'f-start' ? 'Origin Airport' : 'Destination Airport'}</label>
+      <input id="${id}" type="text" placeholder="${placeholder}" autocomplete="off"/>
+      <div class="airport-dropdown" id="dd-${id}" style="display:none"></div>
+      ${hint}
+    </div>`;
+}
+
+function initAirportField(id) {
+  const input = document.getElementById(id);
+  const dd    = document.getElementById(`dd-${id}`);
+  const hint  = document.getElementById(`hint-${id.replace('f-','hint-')}`);
+  if (!input || !dd) return;
+
+  let hiIdx = -1;
+
+  function getItems() { return dd.querySelectorAll('.airport-dropdown-item'); }
+
+  function highlight(items, idx) {
+    items.forEach((el, i) => el.classList.toggle('highlighted', i === idx));
+  }
+
+  function closeDd() { dd.style.display = 'none'; hiIdx = -1; }
+
+  function selectCode(code) {
+    input.value = code;
+    const hintEl = document.getElementById(`hint-${id.replace('f-','')}`);
+    if (hintEl) hintEl.textContent = AIRPORT_NAMES[code] || '';
+    closeDd();
+    checkSameAirport();
+  }
+
+  function renderDropdown(q) {
+    if (!q) { closeDd(); return; }
+    const ql = q.toLowerCase();
+    const matches = allNodes
+      .map(code => {
+        const name = AIRPORT_NAMES[code] || '';
+        const nameLow = name.toLowerCase();
+        const codeLow = code.toLowerCase();
+        let score = 0;
+        if (codeLow === ql)           score = 100;
+        else if (codeLow.startsWith(ql)) score = 80;
+        else if (nameLow.startsWith(ql)) score = 60;
+        else if (codeLow.includes(ql))   score = 40;
+        else if (nameLow.includes(ql))   score = 20;
+        return { code, name, score };
+      })
+      .filter(m => m.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+
+    if (!matches.length) { closeDd(); return; }
+
+    function hl(str, q) {
+      const i = str.toLowerCase().indexOf(q.toLowerCase());
+      if (i < 0) return str;
+      return str.slice(0, i) + `<span class="airport-dropdown-match">${str.slice(i, i+q.length)}</span>` + str.slice(i+q.length);
+    }
+
+    dd.innerHTML = matches.map((m, i) => `
+      <div class="airport-dropdown-item" data-code="${m.code}" data-idx="${i}">
+        <span class="airport-dropdown-code">${hl(m.code, q)}</span>
+        <span class="airport-dropdown-name">${m.name ? hl(m.name, q) : ''}</span>
+      </div>`).join('');
+
+    dd.querySelectorAll('.airport-dropdown-item').forEach(el => {
+      el.addEventListener('mousedown', e => { e.preventDefault(); selectCode(el.dataset.code); });
+    });
+
+    dd.style.display = 'block';
+    hiIdx = -1;
+  }
+
+  input.addEventListener('input', () => {
+    const v = input.value.trim();
+    renderDropdown(v);
+    // hint for exact match
+    const hintEl = document.getElementById(`hint-${id.replace('f-','')}`);
+    if (hintEl) hintEl.textContent = AIRPORT_NAMES[v.toUpperCase()] || '';
+    checkSameAirport();
+  });
+
+  input.addEventListener('keydown', e => {
+    const items = getItems();
+    if (e.key === 'ArrowDown') { e.preventDefault(); hiIdx = Math.min(hiIdx+1, items.length-1); highlight(items, hiIdx); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); hiIdx = Math.max(hiIdx-1, 0); highlight(items, hiIdx); }
+    else if (e.key === 'Enter') {
+      if (hiIdx >= 0 && items[hiIdx]) { e.preventDefault(); selectCode(items[hiIdx].dataset.code); }
+    }
+    else if (e.key === 'Escape') closeDd();
+  });
+
+  input.addEventListener('blur', () => setTimeout(closeDd, 150));
+  input.addEventListener('focus', () => { if (input.value.trim()) renderDropdown(input.value.trim()); });
+}
+
+/* ===================================================
+   SAME-AIRPORT VALIDATION
+   =================================================== */
+function checkSameAirport() {
+  const s = document.getElementById('f-start')?.value.trim().toUpperCase();
+  const e = document.getElementById('f-end')?.value.trim().toUpperCase();
+  const existing = document.getElementById('same-airport-warn');
+  const runBtn = document.getElementById('run-btn');
+  const isSame = s && e && s === e;
+  if (isSame) {
+    if (!existing) {
+      const warn = document.createElement('div');
+      warn.id = 'same-airport-warn';
+      warn.className = 'same-airport-warning';
+      warn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Origin and destination must be different airports.';
+      const form = document.getElementById('dynamic-form');
+      form.appendChild(warn);
+    }
+    if (runBtn) runBtn.disabled = true;
+  } else {
+    if (existing) existing.remove();
+    if (runBtn) runBtn.disabled = false;
+  }
+}
+
+/* ===================================================
    FORM BUILDER
    =================================================== */
 function buildForm(algo) {
   const container = document.getElementById('dynamic-form');
   const sym = CURRENCIES[currentCurrency].symbol;
 
-  const hint = id => `<span id="hint-${id}" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--teal);min-height:14px;display:block;margin-top:3px"></span>`;
+  const twoNode = makeAirportField('f-start', 'e.g. JFK') +
+                  makeAirportField('f-end',   'e.g. PER');
+  const twoNodeWrap = `<div class="form-grid">${twoNode}</div>`;
 
-  const twoNode = `
-    <div class="form-grid">
-      <div class="field"><label>Origin Airport</label>
-        <input id="f-start" type="text" placeholder="e.g. JFK" list="al" autocomplete="off"/>
-        ${hint('start')}
-      </div>
-      <div class="field"><label>Destination Airport</label>
-        <input id="f-end" type="text" placeholder="e.g. PER" list="al" autocomplete="off"/>
-        ${hint('end')}
-      </div>
-    </div>`;
-
-  const oneNode = `
-    <div class="form-grid single">
-      <div class="field"><label>Origin Airport</label>
-        <input id="f-start" type="text" placeholder="e.g. JFK" list="al" autocomplete="off"/>
-        ${hint('start')}
-      </div>
-    </div>`;
-
-  const dl = `<datalist id="al">${allNodes.map(n=>`<option value="${n}" label="${airportLabel(n)}">`).join('')}</datalist>`;
+  const oneNode = `<div class="form-grid single">${makeAirportField('f-start', 'e.g. JFK')}</div>`;
 
   const modeField = `
     <div class="form-grid single"><div class="field"><label>Optimise for</label>
@@ -577,25 +687,22 @@ function buildForm(algo) {
     </div></div>`;
 
   const forms = {
-    dijkstra_cost:    twoNode + dl,
-    dijkstra_duration:twoNode + `<div class="discount-notice"><i class="fa-solid fa-lightbulb"></i>Try <strong>JFK → SYD</strong>: Fastest picks the 19 h direct flight. Cheapest routes via SIN, saving money but adding hours.</div>` + dl,
-    astar:            twoNode + `<div class="discount-notice"><i class="fa-solid fa-location-crosshairs"></i>Try <strong>JFK → PER</strong>: A* routes via DXB (geographically east). Cheapest routes via SIN (slightly cheaper). Different paths due to the geographic heuristic.</div>` + dl,
-    bidirectional:    twoNode + `<div class="form-grid single"><div class="field"><label>Optimise for</label><select id="f-mode"><option value="cost">Cost (${sym})</option><option value="duration">Duration (hrs)</option></select></div></div>` + dl,
-    yen: twoNode + `<div class="form-grid"><div class="field"><label>Number of paths (K)</label><input id="f-k" type="number" value="3" min="1" max="8"/></div><div class="field"><label>Optimise for</label><select id="f-mode"><option value="cost">Cost</option><option value="duration">Duration</option></select></div></div>` + dl,
-    bfs:         oneNode + `<div class="form-grid single"><div class="field"><label>Max connections (K)</label><input id="f-k" type="number" value="2" min="1" max="10"/></div></div>` + dl,
-    budget:      oneNode + `<div class="form-grid single"><div class="field"><label>Budget (${sym})</label><input id="f-budget" type="number" value="500" min="0"/></div></div>` + dl,
+    dijkstra_cost:    twoNodeWrap,
+    dijkstra_duration:twoNodeWrap + `<div class="discount-notice"><i class="fa-solid fa-lightbulb"></i>Try <strong>JFK → SYD</strong>: Fastest picks the 19 h direct flight. Cheapest routes via SIN, saving money but adding hours.</div>`,
+    astar:            twoNodeWrap + `<div class="discount-notice"><i class="fa-solid fa-location-crosshairs"></i>Try <strong>JFK → PER</strong>: A* routes via DXB (geographically east). Cheapest routes via SIN (slightly cheaper). Different paths due to the geographic heuristic.</div>`,
+    bidirectional:    twoNodeWrap + `<div class="form-grid single"><div class="field"><label>Optimise for</label><select id="f-mode"><option value="cost">Cost (${sym})</option><option value="duration">Duration (hrs)</option></select></div></div>`,
+    yen:  twoNodeWrap + `<div class="form-grid"><div class="field"><label>Number of paths (K)</label><input id="f-k" type="number" value="3" min="1" max="8"/></div><div class="field"><label>Optimise for</label><select id="f-mode"><option value="cost">Cost</option><option value="duration">Duration</option></select></div></div>`,
+    bfs:         oneNode + `<div class="form-grid single"><div class="field"><label>Max connections (K)</label><input id="f-k" type="number" value="2" min="1" max="10"/></div></div>`,
+    budget:      oneNode + `<div class="form-grid single"><div class="field"><label>Budget (${sym})</label><input id="f-budget" type="number" value="500" min="0"/></div></div>`,
     articulation:`<p style="font-size:13px;color:var(--muted);margin-bottom:16px">Finds airports whose removal disconnects the network. PTY (Panama City) is the sole gateway between the Caribbean and South America.</p>`,
     scc:         `<p style="font-size:13px;color:var(--muted);margin-bottom:16px">With one-way routes (LHR→EVN, Central Asia inbound only) this dataset has multiple SCCs. You will see distinct components for the Caucasus cluster, Central Asia, and the Caribbean.</p>`,
     mst:         `<p style="font-size:13px;color:var(--muted);margin-bottom:16px">Computes the minimum-cost spanning forest. Isolated sub-graphs (South Cone LPB/ASU, Central Asia, Pacific islands) each appear as separate tree components.</p>`,
   };
   container.innerHTML = forms[algo] || '';
 
-  // Live airport name hints
-  ['start','end'].forEach(id => {
-    const el = document.getElementById(`f-${id}`);
-    const h  = document.getElementById(`hint-${id}`);
-    if (el && h) el.addEventListener('input', () => { const v = el.value.trim().toUpperCase(); h.textContent = AIRPORT_NAMES[v] || ''; });
-  });
+  // Initialise custom autocomplete on both fields if present
+  initAirportField('f-start');
+  initAirportField('f-end');
 }
 
 /* ===================================================
@@ -757,8 +864,15 @@ function runAlgorithm() {
 
 function _run() {
   const algo = currentAlgo;
-  // Algorithms that should highlight path on map
-  const HIGHLIGHT_ALGOS = new Set(['dijkstra_cost','dijkstra_duration','astar','bidirectional','budget','articulation']);
+
+  // Guard: same airport selected for both fields
+  const startVal = getVal('f-start');
+  const endVal   = getVal('f-end');
+  const hasBothFields = document.getElementById('f-start') && document.getElementById('f-end');
+  if (hasBothFields && startVal && endVal && startVal === endVal) {
+    showError('Please choose two different airports — origin and destination cannot be the same.');
+    return;
+  }
 
   try {
     if (algo==='dijkstra_cost') {
