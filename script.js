@@ -700,16 +700,9 @@ function discountBreakdown(path) {
   return lines.length ? `<div class="discount-breakdown">${lines.join('')}</div>` : '';
 }
 
-function scrollToMap() {
-  document.querySelector('.map-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-const SEE_MAP_BTN = `<button onclick="scrollToMap()" class="see-map-btn">
-  <i class="fa-solid fa-map-location-dot"></i> See on the Map
-</button>`;
-
 function renderPath(path, val, mode, doHighlight=false) {
   if (!path) { showError('No route found between these airports.'); return; }
+  // Save for currency re-render
   _lastResult = { type:'path', path, val, mode, doHighlight };
   const nodes = path.map((n,i) => {
     const arrow = i<path.length-1 ? '<span class="route-arrow"><i class="fa-solid fa-angle-right"></i></span>' : '';
@@ -726,7 +719,6 @@ function renderPath(path, val, mode, doHighlight=false) {
       <div style="margin-bottom:6px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Route — ${path.length} airports</div>
       <div class="route-path">${nodes}</div>
       ${fullNames}
-      ${doHighlight ? SEE_MAP_BTN : ''}
     </div>`;
   if (doHighlight) {
     zoomToPath(path);
@@ -798,8 +790,8 @@ function _run() {
       _lastResult = { type:'budget', entries };
       document.getElementById('results-panel').innerHTML = `
         <div style="margin-bottom:10px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Within Budget — ${entries.length} destinations</div>
-        <div class="result-list">${items}</div>
-        ${SEE_MAP_BTN}`;
+        <div class="result-list">${items}</div>`;
+      // Highlight reachable nodes on map
       zoomToPath(entries.map(([n])=>n).filter(n=>coords[n]));
     } else if (algo==='articulation') {
       const aps=findArticulationPoints();
@@ -808,8 +800,8 @@ function _run() {
       const items=aps.map(n=>`<div class="result-list-item"><div class="airport-code">${n}</div><div class="airport-cost">${AIRPORT_NAMES[n]?.split(',')[0]||'Critical'}</div></div>`).join('');
       document.getElementById('results-panel').innerHTML=`
         <div style="margin-bottom:10px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Critical Airports — ${aps.length}</div>
-        <div class="result-list">${items}</div>
-        ${SEE_MAP_BTN}`;
+        <div class="result-list">${items}</div>`;
+      // Highlight critical airports on map
       zoomToPath(aps.filter(n=>coords[n]));
     } else if (algo==='scc') {
       const sccs=tarjanSCC().sort((a,b)=>b.length-a.length);
@@ -942,41 +934,6 @@ function drawMap() {
   for(let g=Math.ceil(minLon/gs)*gs;g<=maxLon;g+=gs){const{x}=geoXY(0,g,W,H);ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
   for(let l=Math.ceil(minLat/gs)*gs;l<=maxLat;l+=gs){const{y}=geoXY(l,0,W,H);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
 
-  // ── World outline (simplified continent polygons) ──────────────────
-  // Each continent is an array of [lon, lat] polygons
-  const CONTINENTS = [
-    // North America
-    [[-168,72],[-140,70],[-95,75],[-65,83],[-20,83],[-10,76],[-60,46],[-52,47],[-66,44],[-70,42],[-75,36],[-80,25],[-85,22],[-90,15],[-83,8],[-77,8],[-77,12],[-75,10],[-72,11],[-65,18],[-60,15],[-62,16],[-60,18],[-65,18],[-68,20],[-72,19],[-80,22],[-80,25],[-87,15],[-85,22],[-90,15],[-95,18],[-97,22],[-105,20],[-110,23],[-115,25],[-117,30],[-117,34],[-122,37],[-124,45],[-128,50],[-126,55],[-136,58],[-145,60],[-152,58],[-152,62],[-164,64],[-168,65],[-168,72]],
-    // South America
-    [[-80,10],[-75,12],[-62,12],[-60,7],[-52,4],[-50,2],[-45,-2],[-35,-8],[-35,-12],[-38,-18],[-40,-22],[-42,-24],[-44,-24],[-48,-28],[-52,-32],[-52,-33],[-56,-38],[-58,-42],[-62,-48],[-66,-52],[-68,-56],[-65,-55],[-62,-52],[-58,-52],[-55,-54],[-52,-52],[-50,-48],[-48,-42],[-50,-38],[-52,-35],[-52,-28],[-58,-22],[-60,-16],[-62,-12],[-68,-12],[-70,-12],[-72,-14],[-78,-8],[-80,-4],[-80,0],[-80,5],[-80,10]],
-    // Europe
-    [[-10,36],[0,36],[5,40],[8,44],[10,44],[15,42],[18,40],[22,38],[28,38],[30,40],[32,42],[38,42],[36,44],[28,46],[26,48],[24,52],[20,54],[18,58],[16,60],[20,62],[26,70],[28,72],[18,70],[10,62],[4,58],[-2,54],[-6,50],[-8,46],[-8,44],[-10,40],[-10,36]],
-    // Africa
-    [[-18,16],[-16,12],[-14,10],[-10,6],[-8,4],[-4,2],[0,4],[4,6],[8,4],[10,6],[14,12],[16,12],[18,14],[22,12],[28,12],[30,16],[34,20],[38,22],[40,18],[44,12],[42,10],[40,8],[38,4],[36,2],[34,-2],[36,-8],[38,-14],[38,-18],[36,-20],[36,-22],[34,-24],[28,-26],[28,-30],[26,-34],[20,-36],[18,-34],[16,-32],[16,-26],[14,-22],[12,-18],[10,-10],[8,-4],[6,0],[2,4],[0,6],[-4,4],[-8,4],[-10,6],[-14,10],[-16,12],[-18,16]],
-    // Asia (simplified)
-    [[26,72],[30,70],[40,70],[50,68],[60,68],[68,72],[80,72],[100,72],[120,72],[140,72],[160,70],[168,65],[168,60],[160,55],[150,50],[140,44],[132,40],[122,36],[120,28],[110,22],[100,18],[100,8],[104,2],[104,-4],[114,-8],[120,-10],[126,-8],[130,-4],[130,2],[140,8],[146,12],[150,18],[152,24],[148,30],[142,36],[136,38],[130,40],[124,42],[120,46],[120,52],[118,56],[112,62],[100,68],[80,72],[60,68],[40,70],[26,72]],
-    // Australia
-    [[114,-22],[116,-20],[120,-18],[126,-14],[132,-12],[136,-12],[138,-14],[140,-18],[142,-20],[148,-18],[152,-22],[154,-24],[154,-28],[152,-32],[150,-36],[146,-38],[142,-38],[138,-36],[134,-32],[130,-32],[126,-32],[122,-34],[118,-34],[114,-30],[112,-26],[112,-22],[114,-22]],
-    // Greenland
-    [[-54,83],[-22,83],[-18,76],[-22,70],[-28,68],[-36,68],[-44,66],[-52,68],[-60,72],[-58,76],[-54,80],[-54,83]],
-  ];
-
-  ctx.save();
-  CONTINENTS.forEach(poly => {
-    ctx.beginPath();
-    poly.forEach(([lon,lat],i) => {
-      const{x,y}=geoXY(lat,lon,W,H);
-      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-    });
-    ctx.closePath();
-    ctx.fillStyle   = 'rgba(255,255,255,0.028)';
-    ctx.strokeStyle = 'rgba(255,255,255,0.09)';
-    ctx.lineWidth   = 0.8;
-    ctx.fill();
-    ctx.stroke();
-  });
-  ctx.restore();
-
   // All routes — highlight hovered edge
   FLIGHTS_RAW.forEach(([src,dst,baseCost,dur, slat,slon,dlat,dlon]) => {
     if(slat===undefined)return;
@@ -1035,130 +992,38 @@ function drawMap() {
   }
 }
 
-/* ─── Map scroll-zoom + pan ────────────────────────── */
-let _isDragging = false;
-let _dragStart  = null; // {mx, my, zoom snapshot}
-
+/* ─── Map scroll-zoom ──────────────────────────────── */
 function setupMapZoom() {
   const canvas = document.getElementById('worldMap');
   if (!canvas) return;
 
-  // ── Smooth wheel zoom ──────────────────────────────
-  let _zoomRaf = null;
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
-    if (_zoomRaf) cancelAnimationFrame(_zoomRaf);
-    _zoomRaf = requestAnimationFrame(() => {
-      const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const W  = canvas.clientWidth, H = canvas.clientHeight;
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const W  = canvas.clientWidth, H = canvas.clientHeight;
 
-      // Tighter factor for more responsive feel
-      const factor = e.deltaY < 0 ? 0.72 : 1.38;
-      const {minLon,maxLon,minLat,maxLat} = _mapZoom;
-      const lonSpan = maxLon - minLon;
-      const latSpan = maxLat - minLat;
+    // Zoom factor
+    const factor = e.deltaY < 0 ? 0.75 : 1.35;
+    const {minLon,maxLon,minLat,maxLat} = _mapZoom;
+    const lonSpan = maxLon - minLon;
+    const latSpan = maxLat - minLat;
 
-      const fxLon = minLon + (mx / W) * lonSpan;
-      const fxLat = maxLat - (my / H) * latSpan;
-      const newLonSpan = Math.min(360, Math.max(4, lonSpan * factor));
-      const newLatSpan = Math.min(170, Math.max(3, latSpan * factor));
+    // Keep the point under cursor fixed
+    const fxLon = minLon + (mx / W) * lonSpan;
+    const fxLat = maxLat - (my / H) * latSpan;
+    const newLonSpan = Math.min(360, Math.max(5, lonSpan * factor));
+    const newLatSpan = Math.min(170, Math.max(4, latSpan * factor));
 
-      _mapZoom = {
-        minLon: Math.max(-180, fxLon - (mx / W) * newLonSpan),
-        maxLon: Math.min( 180, fxLon + (1 - mx / W) * newLonSpan),
-        minLat: Math.max( -85, fxLat - (1 - my / H) * newLatSpan),
-        maxLat: Math.min(  85, fxLat + (my / H) * newLatSpan),
-      };
-      drawMap();
-    });
-  }, { passive: false });
-
-  // ── Pan (drag) ─────────────────────────────────────
-  canvas.addEventListener('mousedown', e => {
-    // Only pan when not hovering an airport (cursor=crosshair means airport hover)
-    if (canvas.style.cursor === 'crosshair') return;
-    _isDragging = true;
-    _dragStart = {
-      mx: e.clientX, my: e.clientY,
-      zoom: { ..._mapZoom }
+    _mapZoom = {
+      minLon: Math.max(-180, fxLon - (mx / W) * newLonSpan),
+      maxLon: Math.min( 180, fxLon + (1 - mx / W) * newLonSpan),
+      minLat: Math.max( -85, fxLat - (1 - my / H) * newLatSpan),
+      maxLat: Math.min(  85, fxLat + (my / H) * newLatSpan),
     };
-    canvas.style.cursor = 'grabbing';
-  });
-
-  window.addEventListener('mousemove', e => {
-    if (!_isDragging || !_dragStart) return;
-    const canvas2 = document.getElementById('worldMap');
-    if (!canvas2) return;
-    const W = canvas2.clientWidth, H = canvas2.clientHeight;
-    const dx = e.clientX - _dragStart.mx;
-    const dy = e.clientY - _dragStart.my;
-    const z  = _dragStart.zoom;
-    const lonSpan = z.maxLon - z.minLon;
-    const latSpan = z.maxLat - z.minLat;
-    const dLon = -(dx / W) * lonSpan;
-    const dLat =  (dy / H) * latSpan;
-    const nMin = z.minLon + dLon, nMax = z.maxLon + dLon;
-    const lMin = z.minLat + dLat, lMax = z.maxLat + dLat;
-    if (nMin >= -180 && nMax <= 180) {
-      _mapZoom.minLon = nMin; _mapZoom.maxLon = nMax;
-    }
-    if (lMin >= -85 && lMax <= 85) {
-      _mapZoom.minLat = lMin; _mapZoom.maxLat = lMax;
-    }
-    drawMap();
-  });
-
-  window.addEventListener('mouseup', () => {
-    if (_isDragging) {
-      _isDragging = false;
-      _dragStart  = null;
-      const canvas2 = document.getElementById('worldMap');
-      if (canvas2) canvas2.style.cursor = 'default';
-    }
-  });
-
-  // ── Touch pan + pinch-zoom ─────────────────────────
-  let _lastTouches = null;
-  canvas.addEventListener('touchstart', e => {
-    e.preventDefault();
-    _lastTouches = e.touches;
-  }, { passive: false });
-
-  canvas.addEventListener('touchmove', e => {
-    e.preventDefault();
-    const W = canvas.clientWidth, H = canvas.clientHeight;
-    if (e.touches.length === 1 && _lastTouches?.length === 1) {
-      const dx = e.touches[0].clientX - _lastTouches[0].clientX;
-      const dy = e.touches[0].clientY - _lastTouches[0].clientY;
-      const lonSpan = _mapZoom.maxLon - _mapZoom.minLon;
-      const latSpan = _mapZoom.maxLat - _mapZoom.minLat;
-      const dLon = -(dx / W) * lonSpan;
-      const dLat =  (dy / H) * latSpan;
-      const nMinL = _mapZoom.minLon + dLon, nMaxL = _mapZoom.maxLon + dLon;
-      const nMinA = _mapZoom.minLat + dLat, nMaxA = _mapZoom.maxLat + dLat;
-      if (nMinL >= -180 && nMaxL <= 180){ _mapZoom.minLon=nMinL; _mapZoom.maxLon=nMaxL; }
-      if (nMinA >= -85  && nMaxA <= 85 ){ _mapZoom.minLat=nMinA; _mapZoom.maxLat=nMaxA; }
-    } else if (e.touches.length === 2 && _lastTouches?.length === 2) {
-      const prevDist = Math.hypot(_lastTouches[0].clientX-_lastTouches[1].clientX, _lastTouches[0].clientY-_lastTouches[1].clientY);
-      const currDist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
-      const factor = prevDist / currDist;
-      const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - canvas.getBoundingClientRect().left;
-      const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - canvas.getBoundingClientRect().top;
-      const lonSpan = _mapZoom.maxLon - _mapZoom.minLon;
-      const latSpan = _mapZoom.maxLat - _mapZoom.minLat;
-      const fxLon = _mapZoom.minLon + (cx / W) * lonSpan;
-      const fxLat = _mapZoom.maxLat - (cy / H) * latSpan;
-      const nLS = Math.min(360, Math.max(4, lonSpan * factor));
-      const nAS = Math.min(170, Math.max(3, latSpan * factor));
-      _mapZoom = { minLon:Math.max(-180,fxLon-(cx/W)*nLS), maxLon:Math.min(180,fxLon+(1-cx/W)*nLS), minLat:Math.max(-85,fxLat-(1-cy/H)*nAS), maxLat:Math.min(85,fxLat+(cy/H)*nAS) };
-    }
-    _lastTouches = e.touches;
     drawMap();
   }, { passive: false });
-
-  canvas.addEventListener('touchend', () => { _lastTouches = null; });
 }
 
 /* ─── Map hover tooltip — airport + edge ──────────── */
@@ -1228,12 +1093,12 @@ function setupMapTooltip() {
       drawMap();
     }
     tooltip.style.opacity = '0';
-    if (!_isDragging) canvas.style.cursor = 'grab';
+    canvas.style.cursor = 'default';
   });
 
   canvas.addEventListener('mouseleave', () => {
     tooltip.style.opacity = '0';
-    if (!_isDragging) canvas.style.cursor = 'grab';
+    canvas.style.cursor = 'default';
     _hoveredAirport = null;
     _hoveredEdge    = null;
     drawMap();
@@ -1251,6 +1116,4 @@ document.addEventListener('DOMContentLoaded', () => {
   setupMapZoom();
   setupMapTooltip();
   document.querySelectorAll('.currency-btn').forEach(b=>b.classList.toggle('active', b.dataset.c==='USD'));
-  const canvas = document.getElementById('worldMap');
-  if (canvas) canvas.style.cursor = 'grab';
 });
