@@ -710,6 +710,14 @@ function renderPath(path, val, mode, doHighlight=false) {
   }).join('');
   const valDisplay = mode==='cost' ? toCurrency(val) : `${val.toFixed(1)} hrs`;
   const fullNames = `<div class="route-names">${path.map(n=>airportLabel(n)).join(' → ')}</div>`;
+
+  // "See on Map" button — only for algorithms that support it
+  const SEE_ON_MAP_ALGOS = new Set(['dijkstra_cost','dijkstra_duration','astar','bidirectional','articulation']);
+  const showSeeOnMap = doHighlight && SEE_ON_MAP_ALGOS.has(currentAlgo);
+  const seeOnMapBtn = showSeeOnMap
+    ? `<button class="see-on-map-btn" onclick="scrollToMapAndHighlight()"><i class="fa-solid fa-map-location-dot"></i> See on Map</button>`
+    : '';
+
   document.getElementById('results-panel').innerHTML = `
     <div class="result-card">
       <div class="result-header">
@@ -719,11 +727,22 @@ function renderPath(path, val, mode, doHighlight=false) {
       <div style="margin-bottom:6px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Route — ${path.length} airports</div>
       <div class="route-path">${nodes}</div>
       ${fullNames}
+      ${seeOnMapBtn}
     </div>`;
   if (doHighlight) {
     zoomToPath(path);
   } else {
     _highlightedNodes = []; drawMap();
+  }
+}
+
+/* ===================================================
+   SCROLL TO MAP + HIGHLIGHT
+   =================================================== */
+function scrollToMapAndHighlight() {
+  const mapSection = document.querySelector('.map-section');
+  if (mapSection) {
+    mapSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }
 
@@ -791,8 +810,8 @@ function _run() {
       document.getElementById('results-panel').innerHTML = `
         <div style="margin-bottom:10px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Within Budget — ${entries.length} destinations</div>
         <div class="result-list">${items}</div>`;
-      // Highlight reachable nodes on map
-      zoomToPath(entries.map(([n])=>n).filter(n=>coords[n]));
+      // Budget mode: no map display, no See on Map button
+      _highlightedNodes = []; drawMap();
     } else if (algo==='articulation') {
       const aps=findArticulationPoints();
       if(!aps.length){document.getElementById('results-panel').innerHTML=`<div class="result-card"><div class="result-label">No critical airports found</div><p style="color:var(--muted);font-size:13px;margin-top:8px">Network has no single points of failure.</p></div>`;
@@ -800,7 +819,8 @@ function _run() {
       const items=aps.map(n=>`<div class="result-list-item"><div class="airport-code">${n}</div><div class="airport-cost">${AIRPORT_NAMES[n]?.split(',')[0]||'Critical'}</div></div>`).join('');
       document.getElementById('results-panel').innerHTML=`
         <div style="margin-bottom:10px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Critical Airports — ${aps.length}</div>
-        <div class="result-list">${items}</div>`;
+        <div class="result-list">${items}</div>
+        <button class="see-on-map-btn" onclick="scrollToMapAndHighlight()"><i class="fa-solid fa-map-location-dot"></i> See on Map</button>`;
       // Highlight critical airports on map
       zoomToPath(aps.filter(n=>coords[n]));
     } else if (algo==='scc') {
@@ -992,6 +1012,61 @@ function drawMap() {
   }
 }
 
+/* ─── Map pan (drag) ───────────────────────────────── */
+function setupMapPan() {
+  const canvas = document.getElementById('worldMap');
+  if (!canvas) return;
+
+  let isDragging = false;
+  let dragStart = null;
+
+  canvas.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    isDragging = true;
+    dragStart = { x: e.clientX, y: e.clientY, zoom: { ..._mapZoom } };
+    canvas.classList.add('panning');
+    canvas.classList.remove('pan-ready');
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!isDragging || !dragStart) return;
+    const rect = canvas.getBoundingClientRect();
+    const W = canvas.clientWidth, H = canvas.clientHeight;
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    const { minLon, maxLon, minLat, maxLat } = dragStart.zoom;
+    const lonSpan = maxLon - minLon;
+    const latSpan = maxLat - minLat;
+    const dLon = -(dx / W) * lonSpan;
+    const dLat =  (dy / H) * latSpan;
+    _mapZoom = {
+      minLon: Math.max(-180, Math.min(180 - lonSpan, minLon + dLon)),
+      maxLon: Math.max(-180 + lonSpan, Math.min(180, maxLon + dLon)),
+      minLat: Math.max(-85, Math.min(85 - latSpan, minLat + dLat)),
+      maxLat: Math.max(-85 + latSpan, Math.min(85, maxLat + dLat)),
+    };
+    drawMap();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      dragStart = null;
+      canvas.classList.remove('panning');
+      canvas.classList.add('pan-ready');
+    }
+  });
+
+  // Show grab cursor when hovering map (not over airports/edges)
+  canvas.addEventListener('mouseenter', () => {
+    if (!isDragging) canvas.classList.add('pan-ready');
+  });
+  canvas.addEventListener('mouseleave', () => {
+    canvas.classList.remove('pan-ready');
+  });
+}
+
 /* ─── Map scroll-zoom ──────────────────────────────── */
 function setupMapZoom() {
   const canvas = document.getElementById('worldMap');
@@ -1113,6 +1188,7 @@ window.addEventListener('resize', drawMap);
 document.addEventListener('DOMContentLoaded', () => {
   buildForm('dijkstra_cost');
   drawMap();
+  setupMapPan();
   setupMapZoom();
   setupMapTooltip();
   document.querySelectorAll('.currency-btn').forEach(b=>b.classList.toggle('active', b.dataset.c==='USD'));

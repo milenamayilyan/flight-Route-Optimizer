@@ -29,6 +29,17 @@
 <!-- ======================== HERO ======================== -->
 <div class="hero">
   <div class="hero-grid-lines"></div>
+  <!-- Decorative flight path curves -->
+  <svg class="hero-flight-svg" viewBox="0 0 1200 700" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+    <path d="M-50,350 Q200,80 600,200 T1250,100" fill="none" stroke="#c8a84b" stroke-width="1.5" stroke-dasharray="6,12"/>
+    <path d="M-50,500 Q300,250 700,350 T1250,280" fill="none" stroke="#4fa8a8" stroke-width="1" stroke-dasharray="4,14"/>
+    <path d="M100,700 Q400,400 800,500 T1250,380" fill="none" stroke="#c8a84b" stroke-width="1" stroke-dasharray="3,10"/>
+    <circle cx="180" cy="250" r="3" fill="#c8a84b" opacity="0.6"/>
+    <circle cx="580" cy="185" r="2.5" fill="#4fa8a8" opacity="0.5"/>
+    <circle cx="920" cy="310" r="3" fill="#c8a84b" opacity="0.5"/>
+  </svg>
+  <!-- Subtle plane silhouette -->
+  <div class="hero-plane-deco"><i class="fa-solid fa-plane"></i></div>
   <div class="hero-inner">
     <span class="hero-eyebrow">
       <i class="fa-solid fa-circle"></i>
@@ -90,6 +101,10 @@
           Highlighted Path
         </div>
       </div>
+    </div>
+    <!-- World map outline background (semi-transparent) -->
+    <div class="map-world-bg">
+      <img src="worldmap.jpg" alt="" aria-hidden="true" />
     </div>
     <!-- Tooltip inside .map-container so absolute positioning works -->
     <div id="map-tooltip"></div>

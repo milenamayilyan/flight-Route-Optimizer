@@ -1221,14 +1221,10 @@ canvas#worldMap {
 .map-container { position: relative; }
 
 /* ============================================
-   ALGO GRID — 12 cards, 3 per row on wide screens
+   ALGO GRID — 2 cards per row (all screen sizes)
    ============================================ */
 .algo-grid {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-@media (max-width: 1100px) {
-  .algo-grid { grid-template-columns: repeat(2, 1fr); }
+  grid-template-columns: repeat(2, 1fr);
 }
 
 @media (max-width: 700px) {
@@ -1250,4 +1246,159 @@ canvas#worldMap {
   background: rgba(255,255,255,0.13) !important;
   color: rgba(255,255,255,0.9) !important;
   border-color: rgba(255,255,255,0.22) !important;
+}
+
+/* ============================================
+   AVIATION DECORATIVE ELEMENTS
+   ============================================ */
+/* Map world outline background */
+.map-world-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.055;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-world-bg img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  filter: invert(1) brightness(0.5);
+  mix-blend-mode: screen;
+}
+
+canvas#worldMap {
+  position: relative;
+  z-index: 1;
+}
+
+/* Map panning cursor */
+canvas#worldMap.panning {
+  cursor: grabbing !important;
+}
+
+canvas#worldMap.pan-ready {
+  cursor: grab;
+}
+
+/* SEE ON MAP BUTTON */
+.see-on-map-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 10px 22px;
+  background: transparent;
+  border: 1.5px solid var(--teal);
+  border-radius: var(--r);
+  color: var(--teal);
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--trans);
+  animation: fadeIn 0.4s 0.15s ease both;
+}
+
+.see-on-map-btn i { font-size: 11px; }
+
+.see-on-map-btn:hover {
+  background: var(--teal);
+  color: #fff;
+  box-shadow: 0 4px 18px rgba(42,122,122,0.28);
+  transform: translateY(-1px);
+}
+
+.see-on-map-btn:active { transform: translateY(0); }
+
+/* Dotted flight trail on algo cards */
+.algo-card::after {
+  content: '';
+  position: absolute;
+  bottom: 12px;
+  right: 16px;
+  width: 48px;
+  height: 3px;
+  background: repeating-linear-gradient(
+    to right,
+    var(--gold) 0, var(--gold) 4px,
+    transparent 4px, transparent 8px
+  );
+  opacity: 0;
+  transition: opacity var(--trans);
+  border-radius: 2px;
+}
+
+.algo-card:hover::after,
+.algo-card.active::after {
+  opacity: 0.35;
+}
+
+/* Radar pulse on the live dot */
+@keyframes radar-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(79,168,168,0.6), 0 0 8px var(--teal-pale); }
+  70%  { box-shadow: 0 0 0 10px rgba(79,168,168,0), 0 0 8px var(--teal-pale); }
+  100% { box-shadow: 0 0 0 0 rgba(79,168,168,0), 0 0 8px var(--teal-pale); }
+}
+
+.map-dot { animation: radar-pulse 2s ease-out infinite; }
+
+/* Runway-style dotted divider before map */
+.map-section::before {
+  content: '';
+  display: block;
+  height: 1px;
+  margin-bottom: 32px;
+  background: repeating-linear-gradient(
+    to right,
+    transparent 0, transparent 8px,
+    var(--divider) 8px, var(--divider) 16px
+  );
+}
+
+/* Footer runway line */
+footer {
+  position: relative;
+}
+footer::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 48px; right: 48px;
+  height: 1px;
+  background: repeating-linear-gradient(
+    to right,
+    var(--gold) 0, var(--gold) 12px,
+    transparent 12px, transparent 24px
+  );
+  opacity: 0.15;
+}
+
+/* Hero subtle plane decoration */
+.hero-plane-deco {
+  position: absolute;
+  right: 7%;
+  top: 32%;
+  opacity: 0.04;
+  font-size: 110px;
+  color: var(--ink);
+  transform: rotate(-22deg);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* SVG flight path curves in hero */
+.hero-flight-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.07;
 }
