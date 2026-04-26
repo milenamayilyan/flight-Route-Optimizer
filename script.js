@@ -530,7 +530,7 @@ const ALGO_CONFIG = {
   dijkstra_cost:    {title:'Cheapest Route',      sub:'Dijkstra — minimum cost (with discounts)',      complexity:'O((V+E) log V)',
     complexityExplain:`<b>V</b> = airports in the network &nbsp;·&nbsp; <b>E</b> = flight routes between them.<br>Dijkstra visits every airport once (<b>V</b> extractions from a min-heap) and relaxes every route once (<b>E</b> relaxations). Each heap operation costs <b>log V</b>, giving <b>(V+E) log V</b> total. Discount percentages are applied during relaxation so they add no extra asymptotic cost.`},
   dijkstra_duration:{title:'Fastest Route',       sub:'Dijkstra — minimum total flight time',          complexity:'O((V+E) log V)',
-    complexityExplain:`<b>V</b> = airports &nbsp;·&nbsp; <b>E</b> = directed routes.<br>Same as cost-Dijkstra — the only difference is the edge weight used (duration in hours instead of price). The heap still processes at most <b>V</b> nodes and <b>E</b> edges, each in <b>O(log V)</b>.`},
+    complexityExplain:`<b>V</b> = airports in the network &nbsp;·&nbsp; <b>E</b> = flight routes between them.<br>The algorithm maintains a min-heap ordered by cumulative flight hours. It extracts the airport with the shortest accumulated duration (<b>V</b> extractions, each costing <b>log V</b>), then relaxes every outgoing route from that airport (<b>E</b> relaxations total). If a route leads to a shorter total duration, the neighbour is re-queued. This continues until the destination is settled, guaranteeing the globally minimum travel time.`},
   astar:            {title:'A* Geo-Route',        sub:'A* with Haversine heuristic — geography-guided',complexity:'O(E log V)',
     complexityExplain:`<b>V</b> = airports &nbsp;·&nbsp; <b>E</b> = routes.<br>A* uses a <em>heuristic</em> h(n) — here the straight-line (Haversine) distance to the destination — to skip exploring unpromising airports early. In the best case this reduces expansions from <b>V</b> to much fewer, making the dominant cost the <b>E log V</b> heap operations on edges rather than nodes.`},
   bidirectional:    {title:'Bidirectional',       sub:'Meets-in-the-middle Dijkstra',                  complexity:'O(b^(d/2))',
@@ -1262,18 +1262,36 @@ function setupComplexityTooltip() {
         <span class="complexity-tip-label">Time Complexity</span>
       </div>
       <div class="complexity-tip-body">${explain}</div>`;
-    tip.style.display = 'block';
     positionTip(e);
   }
 
   function positionTip(e) {
     const rect = badge.getBoundingClientRect();
-    const tw = tip.offsetWidth || 340;
+    tip.style.display = 'block';
+    const th = tip.offsetHeight;
+    const tw = tip.offsetWidth || 360;
+
+    const spaceAbove = rect.top;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const gap = 10;
+
+    let top, arrowDir;
+    if (spaceAbove >= th + gap) {
+      // Fits above — preferred
+      top = rect.top - th - gap + window.scrollY;
+      arrowDir = 'down';
+    } else {
+      // Fall back to below
+      top = rect.bottom + gap + window.scrollY;
+      arrowDir = 'up';
+    }
+
     let left = rect.left + rect.width / 2 - tw / 2;
     left = Math.max(12, Math.min(left, window.innerWidth - tw - 12));
-    const top = rect.bottom + 8 + window.scrollY;
+
     tip.style.left = left + 'px';
-    tip.style.top  = top  + 'px';
+    tip.style.top  = top + 'px';
+    tip.dataset.arrow = arrowDir;
   }
 
   function hideTip() { tip.style.display = 'none'; }
