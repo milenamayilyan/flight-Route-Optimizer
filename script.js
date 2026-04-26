@@ -579,24 +579,30 @@ function initAirportField(id) {
   }
 
   function renderDropdown(q) {
-    if (!q) { closeDd(); return; }
-    const ql = q.toLowerCase();
-    const matches = allNodes
-      .map(code => {
-        const name = AIRPORT_NAMES[code] || '';
-        const nameLow = name.toLowerCase();
-        const codeLow = code.toLowerCase();
-        let score = 0;
-        if (codeLow === ql)           score = 100;
-        else if (codeLow.startsWith(ql)) score = 80;
-        else if (nameLow.startsWith(ql)) score = 60;
-        else if (codeLow.includes(ql))   score = 40;
-        else if (nameLow.includes(ql))   score = 20;
-        return { code, name, score };
-      })
-      .filter(m => m.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
+    let matches;
+    if (!q) {
+      // Show a helpful set of popular airports when field is blank
+      const popular = ['JFK','LHR','CDG','DXB','SIN','NRT','LAX','FRA','AMS','IST','SYD','BOM'];
+      matches = popular.map(code => ({ code, name: AIRPORT_NAMES[code] || '', score: 100 }));
+    } else {
+      const ql = q.toLowerCase();
+      matches = allNodes
+        .map(code => {
+          const name = AIRPORT_NAMES[code] || '';
+          const nameLow = name.toLowerCase();
+          const codeLow = code.toLowerCase();
+          let score = 0;
+          if (codeLow === ql)           score = 100;
+          else if (codeLow.startsWith(ql)) score = 80;
+          else if (nameLow.startsWith(ql)) score = 60;
+          else if (codeLow.includes(ql))   score = 40;
+          else if (nameLow.includes(ql))   score = 20;
+          return { code, name, score };
+        })
+        .filter(m => m.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10);
+    }
 
     if (!matches.length) { closeDd(); return; }
 
@@ -640,7 +646,16 @@ function initAirportField(id) {
   });
 
   input.addEventListener('blur', () => setTimeout(closeDd, 150));
-  input.addEventListener('focus', () => { if (input.value.trim()) renderDropdown(input.value.trim()); });
+  input.addEventListener('focus', () => {
+    // Always show suggestions on focus — show all if empty, filter if text present
+    const v = input.value.trim();
+    if (v) {
+      renderDropdown(v);
+    } else {
+      // Show first 8 airports as suggestions when field is empty
+      renderDropdown('');
+    }
+  });
 }
 
 /* ===================================================
@@ -658,8 +673,12 @@ function checkSameAirport() {
       warn.id = 'same-airport-warn';
       warn.className = 'same-airport-warning';
       warn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Origin and destination must be different airports.';
-      const form = document.getElementById('dynamic-form');
-      form.appendChild(warn);
+      // Insert BEFORE the run button so warning sits above it
+      if (runBtn && runBtn.parentNode) {
+        runBtn.parentNode.insertBefore(warn, runBtn);
+      } else {
+        document.getElementById('dynamic-form')?.appendChild(warn);
+      }
     }
     if (runBtn) runBtn.disabled = true;
   } else {
@@ -1051,6 +1070,84 @@ function ptSegDist(px,py,ax,ay,bx,by){
   return Math.hypot(px-(ax+t*dx),py-(ay+t*dy));
 }
 
+/* ===================================================
+   WORLD MAP OUTLINE  — loaded once from CDN TopoJSON
+   =================================================== */
+let _worldFeatures = null;  // GeoJSON features array, cached after first load
+
+async function loadWorldOutline() {
+  if (_worldFeatures) return _worldFeatures;
+  try {
+    // Natural Earth 110m countries from unpkg (topojson-client not needed — we fetch pre-converted GeoJSON)
+    const r = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
+    const topo = await r.json();
+    // Use topojson.feature via inline mini-decoder
+    _worldFeatures = topoToGeo(topo, topo.objects.countries);
+    drawMap();
+  } catch(e) {
+    // Silently fail — map still works without outline
+    _worldFeatures = [];
+  }
+  return _worldFeatures;
+}
+
+// Minimal TopoJSON → array-of-polygon-rings decoder (no external lib needed)
+function topoToGeo(topo, obj) {
+  const scale = topo.transform ? topo.transform.scale : [1,1];
+  const translate = topo.transform ? topo.transform.translate : [0,0];
+
+  function decodeArc(arc) {
+    let x=0, y=0;
+    return arc.map(([dx,dy]) => {
+      x+=dx; y+=dy;
+      return [x*scale[0]+translate[0], x*scale[1] === undefined ? y*scale[1]+translate[1] : y*scale[1]+translate[1]];
+    }).map(([lon,lat]) => [lon, lat]);
+  }
+
+  const arcs = topo.arcs.map(decodeArc);
+
+  function getArc(i) {
+    return i < 0 ? arcs[~i].slice().reverse() : arcs[i];
+  }
+
+  function geomToRings(geom) {
+    if (geom.type === 'Polygon') return [geom.arcs.map(arcIdxs => arcIdxs.flatMap(getArc))];
+    if (geom.type === 'MultiPolygon') return geom.arcs.map(poly => poly.map(arcIdxs => arcIdxs.flatMap(getArc)));
+    return [];
+  }
+
+  const features = [];
+  for (const geom of obj.geometries) {
+    features.push(...geomToRings(geom));
+  }
+  return features; // array of polygons; each polygon is array of rings; each ring is [[lon,lat],...]
+}
+
+function drawWorldOutline(ctx, W, H) {
+  if (!_worldFeatures || !_worldFeatures.length) return;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.13)';
+  ctx.fillStyle   = 'rgba(255,255,255,0.035)';
+  ctx.lineWidth   = 0.6;
+  ctx.lineJoin    = 'round';
+
+  for (const polygon of _worldFeatures) {
+    for (const ring of polygon) {
+      if (ring.length < 2) continue;
+      ctx.beginPath();
+      for (let i = 0; i < ring.length; i++) {
+        const [lon, lat] = ring[i];
+        const { x, y } = geoXY(lat, lon, W, H);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
 function drawMap() {
   const canvas = document.getElementById('worldMap');
   if (!canvas) return;
@@ -1061,8 +1158,11 @@ function drawMap() {
 
   ctx.fillStyle='#0a0a0f'; ctx.fillRect(0,0,W,H);
 
+  // Real world outline
+  drawWorldOutline(ctx, W, H);
+
   // Grid
-  ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=0.5;
+  ctx.strokeStyle='rgba(255,255,255,0.03)'; ctx.lineWidth=0.4;
   const {minLon,maxLon,minLat,maxLat}=_mapZoom;
   const gs=gridStep(maxLon-minLon);
   for(let g=Math.ceil(minLon/gs)*gs;g<=maxLon;g+=gs){const{x}=geoXY(0,g,W,H);ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
@@ -1073,8 +1173,8 @@ function drawMap() {
     if(slat===undefined)return;
     const a=geoXY(slat,slon,W,H), b=geoXY(dlat,dlon,W,H);
     const isHovEdge = _hoveredEdge && _hoveredEdge.src===src && _hoveredEdge.dst===dst;
-    ctx.strokeStyle = isHovEdge ? 'rgba(200,168,75,0.95)' : 'rgba(79,168,168,0.1)';
-    ctx.lineWidth   = isHovEdge ? 2.5 : 0.7;
+    ctx.strokeStyle = isHovEdge ? 'rgba(200,168,75,0.95)' : 'rgba(79,168,168,0.18)';
+    ctx.lineWidth   = isHovEdge ? 2.5 : 0.8;
     if(isHovEdge){ctx.shadowColor='rgba(200,168,75,0.5)';ctx.shadowBlur=8;}
     ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
     if(isHovEdge)ctx.shadowBlur=0;
@@ -1103,7 +1203,7 @@ function drawMap() {
       ctx.fillStyle='rgba(200,168,75,1)';
       ctx.shadowColor='rgba(200,168,75,0.8)'; ctx.shadowBlur=14;
     } else {
-      ctx.fillStyle='rgba(200,168,75,0.55)';
+      ctx.fillStyle='rgba(200,168,75,0.7)';
     }
     ctx.fill(); ctx.shadowBlur=0;
   });
@@ -1302,6 +1402,7 @@ window.addEventListener('resize', drawMap);
 document.addEventListener('DOMContentLoaded', () => {
   buildForm('dijkstra_cost');
   drawMap();
+  loadWorldOutline();
   setupMapPan();
   setupMapZoom();
   setupMapTooltip();

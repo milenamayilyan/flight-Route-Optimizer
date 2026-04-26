@@ -1482,3 +1482,15 @@ footer::before {
   font-size: 12px;
   flex-shrink: 0;
 }
+
+/* Warning sits above run btn — give it bottom margin */
+.same-airport-warning {
+  margin-bottom: 12px;
+}
+
+/* Disabled run button state */
+.run-btn:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+  cursor: not-allowed;
+}
