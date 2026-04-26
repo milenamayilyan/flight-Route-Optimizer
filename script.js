@@ -527,16 +527,26 @@ function kruskalMST() {
    ALGO CONFIG
    =================================================== */
 const ALGO_CONFIG = {
-  dijkstra_cost:    {title:'Cheapest Route',      sub:'Dijkstra — minimum cost (with discounts)',      complexity:'O((V+E) log V)'},
-  dijkstra_duration:{title:'Fastest Route',       sub:'Dijkstra — minimum total flight time',          complexity:'O((V+E) log V)'},
-  astar:            {title:'A* Geo-Route',        sub:'A* with Haversine heuristic — geography-guided',complexity:'O(E log V)'},
-  bidirectional:    {title:'Bidirectional',       sub:'Meets-in-the-middle Dijkstra',                  complexity:'O(b^d/2)'},
-  yen:              {title:'Top K Routes',        sub:"Yen's K-Shortest Paths — ranked alternatives",  complexity:'O(K·V·(V+E) log V)'},
-  bfs:              {title:'Reachability (BFS)',  sub:'Airports reachable within K connections',       complexity:'O(V + E)'},
-  budget:           {title:'Budget Mode',         sub:'All destinations within a cost ceiling',        complexity:'O((V+E) log V)'},
-  articulation:     {title:'Critical Airports',   sub:"Tarjan's articulation point detection",         complexity:'O(V + E)'},
-  scc:              {title:'Connected Components',sub:"Tarjan's SCC — strongly connected clusters",    complexity:'O(V + E)'},
-  mst:              {title:'Min Spanning Tree',   sub:"Kruskal's MST — minimum cost backbone",         complexity:'O(E log E)'},
+  dijkstra_cost:    {title:'Cheapest Route',      sub:'Dijkstra — minimum cost (with discounts)',      complexity:'O((V+E) log V)',
+    complexityExplain:`<b>V</b> = airports in the network &nbsp;·&nbsp; <b>E</b> = flight routes between them.<br>Dijkstra visits every airport once (<b>V</b> extractions from a min-heap) and relaxes every route once (<b>E</b> relaxations). Each heap operation costs <b>log V</b>, giving <b>(V+E) log V</b> total. Discount percentages are applied during relaxation so they add no extra asymptotic cost.`},
+  dijkstra_duration:{title:'Fastest Route',       sub:'Dijkstra — minimum total flight time',          complexity:'O((V+E) log V)',
+    complexityExplain:`<b>V</b> = airports &nbsp;·&nbsp; <b>E</b> = directed routes.<br>Same as cost-Dijkstra — the only difference is the edge weight used (duration in hours instead of price). The heap still processes at most <b>V</b> nodes and <b>E</b> edges, each in <b>O(log V)</b>.`},
+  astar:            {title:'A* Geo-Route',        sub:'A* with Haversine heuristic — geography-guided',complexity:'O(E log V)',
+    complexityExplain:`<b>V</b> = airports &nbsp;·&nbsp; <b>E</b> = routes.<br>A* uses a <em>heuristic</em> h(n) — here the straight-line (Haversine) distance to the destination — to skip exploring unpromising airports early. In the best case this reduces expansions from <b>V</b> to much fewer, making the dominant cost the <b>E log V</b> heap operations on edges rather than nodes.`},
+  bidirectional:    {title:'Bidirectional',       sub:'Meets-in-the-middle Dijkstra',                  complexity:'O(b^(d/2))',
+    complexityExplain:`<b>b</b> = branching factor (avg routes per airport) &nbsp;·&nbsp; <b>d</b> = path length (hops).<br>Two Dijkstra searches expand simultaneously from source and destination. Each frontier only needs to reach the midpoint, so the search space is roughly <b>b^(d/2)</b> instead of the <b>b^d</b> of a single-direction search — an exponential speedup for long routes.`},
+  yen:              {title:'Top K Routes',        sub:"Yen's K-Shortest Paths — ranked alternatives",  complexity:'O(K·V·(V+E) log V)',
+    complexityExplain:`<b>K</b> = number of paths requested &nbsp;·&nbsp; <b>V</b> = airports &nbsp;·&nbsp; <b>E</b> = routes.<br>Yen's algorithm runs a full Dijkstra (<b>(V+E) log V</b>) for each of the <b>K</b> paths. For each path it iterates over up to <b>V</b> spur nodes, re-running Dijkstra on a modified graph each time — hence the <b>K · V</b> multiplier.`},
+  bfs:              {title:'Reachability (BFS)',  sub:'Airports reachable within K connections',       complexity:'O(V + E)',
+    complexityExplain:`<b>V</b> = airports &nbsp;·&nbsp; <b>E</b> = routes.<br>BFS visits each airport at most once and traverses each route at most once. The depth (connection) limit just stops early — it cannot make the search more expensive than visiting the full graph.`},
+  budget:           {title:'Budget Mode',         sub:'All destinations within a cost ceiling',        complexity:'O((V+E) log V)',
+    complexityExplain:`<b>V</b> = airports &nbsp;·&nbsp; <b>E</b> = routes.<br>Runs Dijkstra from the origin airport to find the minimum-cost path to every reachable airport, then filters the result set by the budget ceiling. Cost is linear in the filter step, so the heap-based Dijkstra dominates.`},
+  articulation:     {title:'Critical Airports',   sub:"Tarjan's articulation point detection",         complexity:'O(V + E)',
+    complexityExplain:`<b>V</b> = airports &nbsp;·&nbsp; <b>E</b> = routes.<br>Tarjan's algorithm does a single DFS pass, tracking <em>discovery time</em> and <em>low value</em> for each node. A node is an articulation point if a child's low value ≥ the node's discovery time. One pass, each node and edge visited once.`},
+  scc:              {title:'Connected Components',sub:"Tarjan's SCC — strongly connected clusters",    complexity:'O(V + E)',
+    complexityExplain:`<b>V</b> = airports &nbsp;·&nbsp; <b>E</b> = directed routes.<br>Tarjan's SCC uses a single DFS and a stack to identify groups of airports reachable from one another. Every node enters and leaves the stack exactly once and every edge is inspected exactly once.`},
+  mst:              {title:'Min Spanning Tree',   sub:"Kruskal's MST — minimum cost backbone",         complexity:'O(E log E)',
+    complexityExplain:`<b>E</b> = routes &nbsp;·&nbsp; <b>V</b> = airports.<br>Kruskal's algorithm sorts all routes by cost — <b>O(E log E)</b> — then greedily adds the cheapest route that doesn't form a cycle, using a Union-Find structure for near-constant-time cycle detection. Sorting dominates, so node count <b>V</b> doesn't appear in the leading term.`},
 };
 let currentAlgo = 'dijkstra_cost';
 
@@ -581,9 +591,8 @@ function initAirportField(id) {
   function renderDropdown(q) {
     let matches;
     if (!q) {
-      // Show a helpful set of popular airports when field is blank
-      const popular = ['JFK','LHR','CDG','DXB','SIN','NRT','LAX','FRA','AMS','IST','SYD','BOM'];
-      matches = popular.map(code => ({ code, name: AIRPORT_NAMES[code] || '', score: 100 }));
+      // Show ALL airports alphabetically when field is blank
+      matches = allNodes.map(code => ({ code, name: AIRPORT_NAMES[code] || '', score: 100 }));
     } else {
       const ql = q.toLowerCase();
       matches = allNodes
@@ -592,7 +601,7 @@ function initAirportField(id) {
           const nameLow = name.toLowerCase();
           const codeLow = code.toLowerCase();
           let score = 0;
-          if (codeLow === ql)           score = 100;
+          if (codeLow === ql)              score = 100;
           else if (codeLow.startsWith(ql)) score = 80;
           else if (nameLow.startsWith(ql)) score = 60;
           else if (codeLow.includes(ql))   score = 40;
@@ -600,8 +609,7 @@ function initAirportField(id) {
           return { code, name, score };
         })
         .filter(m => m.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 10);
+        .sort((a, b) => b.score - a.score || a.code.localeCompare(b.code));
     }
 
     if (!matches.length) { closeDd(); return; }
@@ -710,7 +718,7 @@ function buildForm(algo) {
     dijkstra_duration:twoNodeWrap + `<div class="discount-notice"><i class="fa-solid fa-lightbulb"></i>Try <strong>JFK → SYD</strong>: Fastest picks the 19 h direct flight. Cheapest routes via SIN, saving money but adding hours.</div>`,
     astar:            twoNodeWrap + `<div class="discount-notice"><i class="fa-solid fa-location-crosshairs"></i>Try <strong>JFK → PER</strong>: A* routes via DXB (geographically east). Cheapest routes via SIN (slightly cheaper). Different paths due to the geographic heuristic.</div>`,
     bidirectional:    twoNodeWrap + `<div class="form-grid single"><div class="field"><label>Optimise for</label><select id="f-mode"><option value="cost">Cost (${sym})</option><option value="duration">Duration (hrs)</option></select></div></div>`,
-    yen:  twoNodeWrap + `<div class="form-grid"><div class="field"><label>Number of paths (K)</label><input id="f-k" type="number" value="3" min="1" max="8"/></div><div class="field"><label>Optimise for</label><select id="f-mode"><option value="cost">Cost</option><option value="duration">Duration</option></select></div></div>`,
+    yen:  twoNodeWrap + `<div class="form-grid"><div class="field"><label>Number of paths (K)</label><input id="f-k" type="number" value="3" min="1" max="${allNodes.length - 1}"/></div><div class="field"><label>Optimise for</label><select id="f-mode"><option value="cost">Cost</option><option value="duration">Duration</option></select></div></div>`,
     bfs:         oneNode + `<div class="form-grid single"><div class="field"><label>Max connections (K)</label><input id="f-k" type="number" value="2" min="1" max="10"/></div></div>`,
     budget:      oneNode + `<div class="form-grid single"><div class="field"><label>Budget (${sym})</label><input id="f-budget" type="number" value="500" min="0"/></div></div>`,
     articulation:`<p style="font-size:13px;color:var(--muted);margin-bottom:16px">Finds airports whose removal disconnects the network. PTY (Panama City) is the sole gateway between the Caribbean and South America.</p>`,
@@ -734,7 +742,9 @@ function switchAlgo(btn, algo) {
   const cfg = ALGO_CONFIG[algo];
   document.getElementById('form-title').textContent     = cfg.title;
   document.getElementById('form-subtitle').textContent  = cfg.sub;
-  document.getElementById('form-complexity').textContent= cfg.complexity;
+  const badge = document.getElementById('form-complexity');
+  badge.textContent   = cfg.complexity;
+  badge.dataset.explain = cfg.complexityExplain || '';
   buildForm(algo);
   document.getElementById('results-panel').innerHTML = `<div class="results-empty"><i class="fa-solid fa-route"></i><p>Configure the parameters above and click Run Algorithm.</p></div>`;
 }
@@ -1047,7 +1057,9 @@ function resetMap() {
   const cfg = ALGO_CONFIG[defaultAlgo];
   document.getElementById('form-title').textContent      = cfg.title;
   document.getElementById('form-subtitle').textContent   = cfg.sub;
-  document.getElementById('form-complexity').textContent = cfg.complexity;
+  const initBadge = document.getElementById('form-complexity');
+  initBadge.textContent    = cfg.complexity;
+  initBadge.dataset.explain = cfg.complexityExplain || '';
   // Rebuild form (clears inputs)
   buildForm(defaultAlgo);
   // Reset sidebar active state
@@ -1224,6 +1236,53 @@ function drawMap() {
       ctx.fillText(code, x, y-13);
     });
   }
+}
+
+/* ===================================================
+   COMPLEXITY BADGE TOOLTIP
+   =================================================== */
+function setupComplexityTooltip() {
+  const badge = document.getElementById('form-complexity');
+  if (!badge) return;
+
+  let tip = document.getElementById('complexity-tip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'complexity-tip';
+    tip.className = 'complexity-tip';
+    document.body.appendChild(tip);
+  }
+
+  function showTip(e) {
+    const explain = badge.dataset.explain;
+    if (!explain) return;
+    tip.innerHTML = `
+      <div class="complexity-tip-header">
+        <span class="complexity-tip-formula">${badge.textContent}</span>
+        <span class="complexity-tip-label">Time Complexity</span>
+      </div>
+      <div class="complexity-tip-body">${explain}</div>`;
+    tip.style.display = 'block';
+    positionTip(e);
+  }
+
+  function positionTip(e) {
+    const rect = badge.getBoundingClientRect();
+    const tw = tip.offsetWidth || 340;
+    let left = rect.left + rect.width / 2 - tw / 2;
+    left = Math.max(12, Math.min(left, window.innerWidth - tw - 12));
+    const top = rect.bottom + 8 + window.scrollY;
+    tip.style.left = left + 'px';
+    tip.style.top  = top  + 'px';
+  }
+
+  function hideTip() { tip.style.display = 'none'; }
+
+  badge.addEventListener('mouseenter', showTip);
+  badge.addEventListener('mouseleave', hideTip);
+  badge.addEventListener('focus',      showTip);
+  badge.addEventListener('blur',       hideTip);
+  badge.style.cursor = 'help';
 }
 
 /* ─── Map pan (drag) ───────────────────────────────── */
@@ -1406,5 +1465,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setupMapPan();
   setupMapZoom();
   setupMapTooltip();
+  setupComplexityTooltip();
   document.querySelectorAll('.currency-btn').forEach(b=>b.classList.toggle('active', b.dataset.c==='USD'));
 });

@@ -1494,3 +1494,74 @@ footer::before {
   pointer-events: none;
   cursor: not-allowed;
 }
+
+/* ============================================
+   COMPLEXITY TOOLTIP
+   ============================================ */
+.complexity-badge {
+  cursor: help;
+  position: relative;
+  transition: background var(--trans), border-color var(--trans);
+}
+
+.complexity-badge:hover {
+  background: rgba(42,122,122,0.1);
+  border-color: var(--teal);
+}
+
+.complexity-tip {
+  display: none;
+  position: absolute;
+  z-index: 9999;
+  width: 360px;
+  max-width: calc(100vw - 24px);
+  background: var(--card);
+  border: 1.5px solid rgba(42,122,122,0.35);
+  border-radius: var(--r);
+  box-shadow: 0 12px 40px rgba(10,10,15,0.22), 0 0 0 1px rgba(255,255,255,0.04);
+  font-family: 'Syne', sans-serif;
+  pointer-events: none;
+  animation: fadeIn 0.18s ease both;
+}
+
+.complexity-tip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.complexity-tip-formula {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--teal);
+}
+
+.complexity-tip-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.complexity-tip-body {
+  padding: 12px 16px 14px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+.complexity-tip-body b {
+  color: var(--teal);
+  font-weight: 700;
+}
+
+.complexity-tip-body em {
+  color: var(--gold);
+  font-style: normal;
+  font-weight: 600;
+}
