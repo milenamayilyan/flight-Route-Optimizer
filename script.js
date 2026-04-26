@@ -1478,6 +1478,15 @@ window.addEventListener('resize', drawMap);
    =================================================== */
 document.addEventListener('DOMContentLoaded', () => {
   buildForm('dijkstra_cost');
+
+  // Prime the complexity badge for the default algo so tooltip works immediately
+  const initCfg   = ALGO_CONFIG['dijkstra_cost'];
+  const initBadge = document.getElementById('form-complexity');
+  if (initBadge && initCfg) {
+    initBadge.textContent     = initCfg.complexity;
+    initBadge.dataset.explain = initCfg.complexityExplain || '';
+  }
+
   drawMap();
   loadWorldOutline();
   setupMapPan();
