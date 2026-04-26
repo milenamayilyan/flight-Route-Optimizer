@@ -2,6 +2,10 @@
 
 > A comprehensive flight network optimizer running 10 graph algorithms on a 300+ route global dataset, visualized on an interactive world map.
 
+🌐 **[Open Aeropath → milenamayilyan.github.io/flight-Route-Optimizer](https://milenamayilyan.github.io/flight-Route-Optimizer/)**
+
+🌐 **[Open Aeropath → milenamayilyan.github.io/flight-Route-Optimizer](https://milenamayilyan.github.io/flight-Route-Optimizer/)**
+
 ![DS Project](https://img.shields.io/badge/Data_Structures-Project-c8a84b?style=flat-square)
 ![Algorithms](https://img.shields.io/badge/Algorithms-10-4fa8a8?style=flat-square)
 ![Routes](https://img.shields.io/badge/Routes-308-c4613a?style=flat-square)
@@ -91,8 +95,7 @@ aeropath/
 ├── style.css        # All styles — CSS custom properties, layout, map, tooltips, animations
 ├── script.js        # All frontend logic — graph, algorithms, map canvas, UI interactions
 ├── ds.py            # Python backend — same 10 algorithms, standalone CLI
-├── flights.csv      # Dataset — 308 directed flight routes with coordinates
-└── worldmap.jpg     # Decorative world outline (background layer on the map canvas)
+└── flights.csv      # Dataset — 308 directed flight routes with coordinates
 ```
 
 ---
@@ -143,8 +146,8 @@ Discount labels are displayed in results. They add no extra asymptotic cost — 
 ### Browser (zero setup)
 
 ```bash
-git clone https://github.com/your-username/aeropath.git
-cd aeropath
+git clone https://github.com/milenamayilyan/flight-Route-Optimizer.git
+cd flight-Route-Optimizer
 # Open index.html in any modern browser
 open index.html
 ```

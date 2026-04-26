@@ -1253,27 +1253,6 @@ canvas#worldMap {
 /* ============================================
    AVIATION DECORATIVE ELEMENTS
    ============================================ */
-/* Map world outline background */
-.map-world-bg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.055;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.map-world-bg img {
-  width: 100%;
-  height: auto;
-  object-fit: cover;
-  filter: invert(1) brightness(0.5);
-  mix-blend-mode: screen;
-}
-
 /* Map panning cursor */
 canvas#worldMap.panning {
   cursor: grabbing !important;
