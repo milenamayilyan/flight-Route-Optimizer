@@ -4,8 +4,6 @@
 
 🌐 **[Open Aeropath → milenamayilyan.github.io/flight-Route-Optimizer](https://milenamayilyan.github.io/flight-Route-Optimizer/)**
 
-🌐 **[Open Aeropath → milenamayilyan.github.io/flight-Route-Optimizer](https://milenamayilyan.github.io/flight-Route-Optimizer/)**
-
 ![DS Project](https://img.shields.io/badge/Data_Structures-Project-c8a84b?style=flat-square)
 ![Algorithms](https://img.shields.io/badge/Algorithms-10-4fa8a8?style=flat-square)
 ![Routes](https://img.shields.io/badge/Routes-308-c4613a?style=flat-square)
