@@ -43,7 +43,7 @@ The visual interface was built with AI assistance. All graph algorithm logic, da
 Work was divided by algorithm group so both members implemented algorithms in both Python and JavaScript.
 
 ### Milena Mayilyan
-**Python (`ds.py`):** `FlightGraph` class · `load_from_csv()` · `dijkstra()` · `astar()` · `bidirectional_dijkstra()` · `bellman_ford()` · input validation
+**Python (`ds.py`):** `FlightGraph` class · `load_from_csv()` · `dijkstra()` · `astar()` · `bidirectional_dijkstra()` · input validation
 
 **JavaScript (`script.js`):** Dijkstra (cheapest & fastest) · A\* · Bidirectional Dijkstra · map canvas rendering · zoom/pan · currency conversion · "See on Map" behavior
 
@@ -348,7 +348,6 @@ The map is a `<canvas>` element drawn with the 2D Canvas API:
 - **No live backend.** `ds.py` and `script.js` are independent implementations with no HTTP API between them.
 - **Equirectangular projection.** High-latitude regions (Greenland, Russia) appear compressed.
 - **Static dataset.** Costs and durations are representative, not live airline pricing.
-- **Bellman-Ford and Floyd-Warshall** exist in `ds.py` only — their O(V·E) and O(V³) complexity make client-side execution impractical on the full dataset.
 
 ---
 
