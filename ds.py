@@ -171,58 +171,6 @@ def astar(graph_obj, start, end):
 
 
 # =========================
-# BELLMAN-FORD (handles negative edges)
-# =========================
-def bellman_ford(graph_obj, start, end, mode="cost"):
-    nodes = list(graph_obj.get_nodes())
-    if start not in nodes or end not in nodes:
-        return None, float("inf")
-
-    dist = {n: float("inf") for n in nodes}
-    dist[start] = 0
-    prev = {}
-
-    edges = []
-    for src in graph_obj.graph:
-        for dest, cost, duration in graph_obj.graph[src]:
-            w = cost if mode == "cost" else duration
-            edges.append((src, dest, w))
-
-    for _ in range(len(nodes) - 1):
-        updated = False
-        for src, dest, w in edges:
-            if dist[src] != float("inf") and dist[src] + w < dist[dest]:
-                dist[dest] = dist[src] + w
-                prev[dest] = src
-                updated = True
-        if not updated:
-            break
-
-    # Negative cycle detection
-    for src, dest, w in edges:
-        if dist[src] != float("inf") and dist[src] + w < dist[dest]:
-            return None, -float("inf")  # negative cycle detected
-
-    if dist[end] == float("inf"):
-        return None, float("inf")
-
-    path = []
-    cur = end
-    visited_back = set()
-    while cur != start:
-        if cur in visited_back:
-            return None, float("inf")
-        visited_back.add(cur)
-        path.append(cur)
-        cur = prev.get(cur)
-        if cur is None:
-            return None, float("inf")
-    path.append(start)
-    path.reverse()
-    return path, dist[end]
-
-
-# =========================
 # FLOYD-WARSHALL (all-pairs shortest paths)
 # =========================
 def floyd_warshall(graph_obj, mode="cost"):
@@ -585,16 +533,15 @@ def main():
         print("\n Flight Connection Optimizer")
         print("1.  Cheapest Route (Dijkstra)")
         print("2.  Fastest Route (Dijkstra)")
-        print("3.  Cheapest Route (Bellman-Ford — handles negative weights)")
-        print("4.  Geo-Optimised Route (A*)")
-        print("5.  Bidirectional Dijkstra")
-        print("6.  All-Pairs Shortest Paths (Floyd-Warshall)")
-        print("7.  Top K Cheapest Routes (Yen's)")
-        print("8.  Reachable Airports within K Connections (BFS)")
-        print("9.  Critical Airports (Tarjan Articulation Points)")
-        print("10. Strongly Connected Components (Tarjan SCC)")
-        print("11. Budget Mode")
-        print("12. Minimum Spanning Tree (Kruskal)")
+        print("3.  Geo-Optimised Route (A*)")
+        print("4.  Bidirectional Dijkstra")
+        print("5.  All-Pairs Shortest Paths (Floyd-Warshall)")
+        print("6.  Top K Cheapest Routes (Yen's)")
+        print("7.  Reachable Airports within K Connections (BFS)")
+        print("8.  Critical Airports (Tarjan Articulation Points)")
+        print("9. Strongly Connected Components (Tarjan SCC)")
+        print("10. Budget Mode")
+        print("11. Minimum Spanning Tree (Kruskal)")
         print("0.  Exit")
 
         choice = input("Choose option: ").strip()
@@ -611,22 +558,16 @@ def main():
 
         elif choice == "3":
             s, d = input("Start: "), input("Destination: ")
-            m = input("Mode (cost/duration): ") or "cost"
-            path, val = bellman_ford(graph, s, d, m)
-            print("Path:", path, "| Value:", round(val, 2))
-
-        elif choice == "4":
-            s, d = input("Start: "), input("Destination: ")
             path, cost = astar(graph, s, d)
             print("Path:", path, "| Cost: $", round(cost, 2))
 
-        elif choice == "5":
+        elif choice == "4":
             s, d = input("Start: "), input("Destination: ")
             m = input("Mode (cost/duration): ") or "cost"
             path, val = bidirectional_dijkstra(graph, s, d, m)
             print("Path:", path, "| Value:", round(val, 2))
 
-        elif choice == "6":
+        elif choice == "5":
             m    = input("Mode (cost/duration): ") or "cost"
             dist, nodes, idx, get_path = floyd_warshall(graph, m)
             s, d = input("From: "), input("To: ")
@@ -636,7 +577,7 @@ def main():
             else:
                 print("Node not found.")
 
-        elif choice == "7":
+        elif choice == "6":
             s, d = input("Start: "), input("Destination: ")
             k    = int(input("K: ") or "3")
             m    = input("Mode (cost/duration): ") or "cost"
@@ -644,21 +585,21 @@ def main():
             for i, (c, p) in enumerate(results, 1):
                 print(f"  {i}. {p}  |  {round(c,2)}")
 
-        elif choice == "8":
+        elif choice == "7":
             s = input("Start: ")
             k = int(input("Max connections: "))
             print("Reachable:", bfs_k_connections(graph, s, k))
 
-        elif choice == "9":
+        elif choice == "8":
             print("Critical Airports:", find_articulation_points(graph))
 
-        elif choice == "10":
+        elif choice == "9":
             sccs = tarjan_scc(graph)
             print(f"Found {len(sccs)} strongly connected component(s):")
             for i, scc in enumerate(sccs, 1):
                 print(f"  SCC {i}: {scc}")
 
-        elif choice == "11":
+        elif choice == "10":
             s      = input("Start: ")
             budget = float(input("Budget ($): "))
             result = budget_routes(graph, s, budget)
@@ -666,7 +607,7 @@ def main():
             for airport, cost in sorted(result.items(), key=lambda x: x[1]):
                 print(f"  {airport}: ${round(cost,2)}")
 
-        elif choice == "12":
+        elif choice == "11":
             mst = kruskal_mst(graph)
             total = sum(c for _, _, c in mst)
             print(f"MST ({len(mst)} edges, total cost ${round(total,2)}):")
