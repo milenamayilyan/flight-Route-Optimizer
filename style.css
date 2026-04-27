@@ -1131,54 +1131,6 @@ canvas#worldMap {
 }
 
 /* ============================================
-   DISCOUNT NOTICE
-   ============================================ */
-.discount-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 16px;
-  background: rgba(42,122,122,0.07);
-  border: 1px solid rgba(42,122,122,0.18);
-  border-radius: var(--r);
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.5;
-  margin-bottom: 20px;
-}
-
-.discount-notice i {
-  color: var(--teal);
-  font-size: 12px;
-  margin-top: 1px;
-  flex-shrink: 0;
-}
-
-.discount-notice strong { color: var(--teal); }
-
-.discount-breakdown {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 14px;
-}
-
-.disc-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  padding: 4px 10px;
-  background: rgba(42,122,122,0.08);
-  border: 1px solid rgba(42,122,122,0.18);
-  border-radius: 20px;
-  color: var(--teal);
-}
-
-.disc-item i { font-size: 9px; }
-
-/* ============================================
    ROUTE NAMES (full airport labels below path)
    ============================================ */
 .route-names {
@@ -1590,3 +1542,29 @@ footer::before {
   font-style: normal;
   font-weight: 600;
 }
+
+/* ============================================
+   ALGO TIP — hint box inside algorithm forms
+   ============================================ */
+.algo-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(42,122,122,0.07);
+  border: 1px solid rgba(42,122,122,0.18);
+  border-radius: var(--r);
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.algo-tip i {
+  color: var(--teal);
+  font-size: 12px;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+.algo-tip strong { color: var(--teal); }

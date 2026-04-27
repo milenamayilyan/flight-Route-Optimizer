@@ -171,7 +171,7 @@ def astar(graph_obj, start, end):
 
 
 # =========================
-# BELLMAN-FORD (handles discount/negative edges)
+# BELLMAN-FORD (handles negative edges)
 # =========================
 def bellman_ford(graph_obj, start, end, mode="cost"):
     nodes = list(graph_obj.get_nodes())
@@ -585,7 +585,7 @@ def main():
         print("\n Flight Connection Optimizer")
         print("1.  Cheapest Route (Dijkstra)")
         print("2.  Fastest Route (Dijkstra)")
-        print("3.  Cheapest Route with Negative Discounts (Bellman-Ford)")
+        print("3.  Cheapest Route (Bellman-Ford — handles negative weights)")
         print("4.  Geo-Optimised Route (A*)")
         print("5.  Bidirectional Dijkstra")
         print("6.  All-Pairs Shortest Paths (Floyd-Warshall)")
