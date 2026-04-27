@@ -12,7 +12,7 @@
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Project Summary](#project-summary)
 - [Team Contributions](#team-contributions)
@@ -38,7 +38,7 @@ The visual interface was built with AI assistance. All graph algorithm logic, da
 
 ---
 
-## 👥 Team Contributions
+## Team Contributions
 
 Work was divided by algorithm group so both members implemented algorithms in both Python and JavaScript.
 
@@ -54,7 +54,7 @@ Work was divided by algorithm group so both members implemented algorithms in bo
 
 ---
 
-## ✅ Requirements Checklist
+## Requirements Checklist
 
 ### Required
 
@@ -155,7 +155,7 @@ Budget Mode results are excluded from map highlighting because the output is a s
 
 ---
 
-## 🔢 Algorithms
+## Algorithms
 
 ### Shortest Path
 
@@ -186,7 +186,7 @@ Budget Mode results are excluded from map highlighting because the output is a s
 
 ---
 
-## ⚠️ Edge Cases
+## Edge Cases
 
 ### 1. Source equals destination
 Caught before the algorithm runs. Selecting the same airport in both fields shows a warning banner:
@@ -237,7 +237,7 @@ BFS with K = 0 returns only the origin airport itself — no neighbours are expl
 
 ---
 
-## 🗂 Project Structure
+## Project Structure
 
 ```
 flight-Route-Optimizer/
@@ -250,7 +250,7 @@ flight-Route-Optimizer/
 
 ---
 
-## 📊 Dataset
+## Dataset
 
 **`flights.csv`** — 308 directed routes across 64 airports on 6 continents.
 
@@ -274,7 +274,7 @@ flight-Route-Optimizer/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Browser (zero setup)
 
@@ -311,7 +311,7 @@ print(path, cost)
 
 ---
 
-## 🏗 Architecture
+## Architecture
 
 ### Graph Representation
 
@@ -343,7 +343,7 @@ The map is a `<canvas>` element drawn with the 2D Canvas API:
 
 ---
 
-## ⚡ Known Limitations
+## Known Limitations
 
 - **No live backend.** `ds.py` and `script.js` are independent implementations with no HTTP API between them.
 - **Equirectangular projection.** High-latitude regions (Greenland, Russia) appear compressed.
